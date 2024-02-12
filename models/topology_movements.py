@@ -30,35 +30,47 @@ def tree_slicing_to_parent(model, selected_host = None, parent = None, forced=Fa
     grandparent = list(model.T.predecessors(parent))[0]
 
     #candidates to slice to sibling in new network
-    N_new = len([h for h in model.T.nodes()
-              if h != model.root_host and
-              (model.T.out_degree(list(model.T.predecessors(h))[0]) >= 2 or False)
+    N_new = len([h for h in model.T if h != model.root_host and
+                 model.out_degree(model.parent(h)) != 1
               ])
-
-    ##Checking if parent and grandparent are candidates in the new network
+    # if verbose: print("before N_new",N_new,"N_candidates_to_chain",model.N_candidates_to_chain,model.N_candidates_to_chain==N_new)
+    ##Checking if parent and grandparent are candidates in the new network for slicing to chain
     if model.T.out_degree(parent) == 1:
         N_new += 1
+        model.N_candidates_to_chain += 1
     elif model.T.out_degree(parent) == 2:
         N_new -= 1
+        model.N_candidates_to_chain -= 1
     if model.T.out_degree(grandparent) == 1:
         N_new += 1
+        model.N_candidates_to_chain += 1
 
+    # if verbose: print("N_new",N_new,"N_candidates_to_chain",model.N_candidates_to_chain,model.N_candidates_to_chain==N_new)
     #Ratio of proposal
-    gg = N_new*model.T.out_degree(grandparent)/len(candidates)
+    gg = len(candidates)/(N_new*model.T.out_degree(grandparent))
 
-    #If this movement is forced because the other is not possible, we need to take into account the new ratio of proposals
-    if forced:
-        gg = 2*gg
 
     #Creating new network
     T_new = nx.DiGraph(model.T)
     T_new.remove_edge(parent,selected_host)
     T_new.add_edge(grandparent,selected_host)
 
+    # if verbose: print("len(T_new)-T_new.out_degree(model.root_host) -1 == 0:",len(T_new)-T_new.out_degree(model.root_host) -1 == 0)
+    # if verbose: print("forced",forced , "model.N_candidates_to_chain_old==0", model.N_candidates_to_chain_old == 0)
+    # if verbose: print("forced or ddd",forced or model.N_candidates_to_chain_old == 0)
+    # if verbose: print("N_new==0",N_new==0)
+
+    # Correcting ratio of proposals (gg) and number of candidates (N_new)
+    ## If this movement is forced because the other is not possible, we need to take into account the new ratio of proposals
+    if len(T_new)-T_new.out_degree(model.root_host) -1 == 0:
+        gg = 2*gg
+    #If this movement is forced because the other is not possible, we need to take into account the new ratio of proposals
+    if forced or model.N_candidates_to_chain_old == 0:
+        gg = 0.5*gg
 #     LL_new = model.log_likelihood_transmission(T_new)
     if verbose:
         print(f"slicing node to be parent: Selected host: {selected_host}, Parent: {parent}, Grandparent:{grandparent}")
-        print(f"\tgg: {gg}, N_new: {N_new}, k_out_grandparent: {model.out_degree(grandparent)}, Num candidates: {len(candidates)}")
+        print(f"\tgg: {gg}, N_new: {N_new}, N_new2: {model.N_candidates_to_chain}, k_out_grandparent: {model.out_degree(grandparent)}, Num candidates: {len(candidates)}")
     return T_new,gg,selected_host,parent,grandparent
 
 
@@ -103,17 +115,44 @@ def tree_slicing_to_sibling(model, selected_host=None, parent=None, selected_sib
         N_new += 1
 
     # Ratio of proposal
-    gg = 1 / len(candidates)
+    gg =  (len(candidates)*(model.out_degree(parent)-1)) / N_new
 
-    #If this movement is forced because the other is not possible, we need to take into account the new ratio of proposals
-    if forced:
-        gg = 2*gg
+
 
     #Creating new network
     T_new = nx.DiGraph(model.T)
     T_new.remove_edge(parent, selected_host)
     T_new.add_edge(selected_sibling, selected_host)
 
+    # Correcting ratio of proposals (gg) and number of candidates (N_new)
+    ## If this movement is forced because the other is not possible, we need to take into account the new ratio of proposals
+
+    #Checking new parent
+    N_new2 = len(candidates)
+    if T_new.out_degree(selected_sibling) == 1:
+        N_new2 -= 1
+        model.N_candidates_to_chain -= 1
+    elif T_new.out_degree(selected_sibling) == 2:
+        N_new2 += 1
+        model.N_candidates_to_chain += 1
+    #Checinkg old parent
+    if T_new.out_degree(parent) == 0:
+        N_new2 += 1
+        model.N_candidates_to_chain += 1
+    elif T_new.out_degree(parent) == 1:
+        N_new2 -= 1
+        model.N_candidates_to_chain -= 1
+
+
+    candidates2 = [h for h in T_new.nodes()
+                  if h != model.root_host and
+                  (T_new.out_degree(list(T_new.predecessors(h))[0]) >= 2 or False)
+                  ]
+
+    if forced or len(model.T)-1-model.out_degree(model.root_host) == 0:
+        gg = 0.5 * gg
+    elif len(candidates2)==0:
+        gg = 2 * gg
     if verbose:
         print(f"slicing node to be sibling: Selected host: {selected_host}, Parent: {parent}, Sibling:{selected_sibling} ")
         print(f"\tgg: {gg}, N_new: {N_new}, k_out_parent:{model.out_degree(parent)}, Num candidates: {len(candidates)}")
@@ -125,7 +164,7 @@ def tree_slicing_step(model):
 
     Parameters
     ----------
-    model: transmission_models.models.didelot_unsampled.DidelotUnsampled
+    model: transmission_models.models.didelot_unsampled.didelotUnsampled
         Transmission model
 
     """
@@ -150,6 +189,7 @@ def tree_slicing_step(model):
         model.log_likelihood = L_new
         L_old = L_new
         model.get_newick()
+        model.N_candidates_to_chain_old = model.N_candidates_to_chain
 
     else:
         if random.random()<P:
@@ -157,3 +197,4 @@ def tree_slicing_step(model):
             model.log_likelihood = L_new
             L_old = L_new
             model.get_newick()
+            model.N_candidates_to_chain_old = model.N_candidates_to_chain
