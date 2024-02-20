@@ -340,7 +340,7 @@ class didelot_unsampled():
 
         return self.newick
 
-    def infection_time_from_sampling_step(self, verbose=False):
+    def infection_time_from_sampling_step(self, selected_host=None, verbose=False):
         """
         Method to change the infection time of a host amd then accept the change using the Metropolis Hastings algorithm.
 
@@ -356,7 +356,7 @@ class didelot_unsampled():
         #######                    INFECTION TIME                   ######
         ##################################################################
         ##################################################################
-        selected_host = sample(list(self.T.nodes()), 1)[0]
+        if selected_host is None: selected_host = sample(list(self.T.nodes()), 1)[0]
         # print(selected_host.t_inf)
         while selected_host.t_sample is None:
             selected_host = sample(list(self.T.nodes()), 1)[0]
@@ -391,7 +391,7 @@ class didelot_unsampled():
                     acceptable = True
 
         # gg = self.pdf_sampling(t_inf_new)/self.pdf_sampling(selected_host.t_sample-selected_host.t_inf)
-        gg = ((t_inf_new / t_inf_old2) ** (self.k_samp - 1) * np.exp(-(t_inf_new - t_inf_old2) / self.theta_samp))
+        gg = ((t_inf_old2/t_inf_new ) ** (self.k_samp - 1) * np.exp(-(t_inf_old2 - t_inf_new) / self.theta_samp))
         # pp2 = likelihood_ratio(self,selected_host,t_inf_old,selected_host.t_sample-t_inf_new,log=False)
         # L_old = self.log_likelihood_transmission()
 
@@ -409,6 +409,78 @@ class didelot_unsampled():
         #         if  j.sampled:print("accepted with non sampled successor",j.sampled)
         # print(itt,P-P2 <1e-9,selected_host.t_sample-t_inf_new)
 
+        # Metropolis Hastings
+        if P < 1:
+            rnd = random()
+            # print(P,algo)
+            if rnd > P:
+                rejects += 1
+                selected_host.t_inf = t_inf_old
+                # print("rejected",itt)
+            else:
+                L_old = L_new
+                # print("accepted",itt)
+        else:
+            L_old = L_new
+
+    def infection_time_from_infection_model_step(self, selected_host=None, verbose=False):
+        """
+        Method to change the infection time of a host and then accept the change using the Metropolis Hastings algorithm.
+
+        Parameters
+        ----------
+        verbose
+        """
+        L_old = self.get_log_likelihood_transmission()
+        rejects = 0
+
+        ##################################################################
+        ##################################################################
+        #######                    INFECTION TIME                   ######
+        ##################################################################
+        ##################################################################
+        if selected_host is None: selected_host = sample(list(self.T.nodes()), 1)[0]
+        # print(selected_host.t_inf)
+        while selected_host.t_sample is None:
+            selected_host = sample(list(self.T.nodes()), 1)[0]
+            # t_inf_old = selected_host.t_inf
+            # print(selected_host.t_sample)
+
+        parent = self.parent(selected_host)
+
+        # print(t_inf_old)
+        t_inf_old = selected_host.t_inf
+        t_inf_old2 = -selected_host.t_inf + selected_host.t_sample
+
+        # We don't want transmissions happening before the infectors transmission
+        acceptable = False
+        trys = 0
+
+        # Choosing sampled node
+        while not acceptable:
+            trys += 1
+            # if verbose:print("tries",trys)
+            t_inf_new = self.samp_infection()
+            for j in self.T.successors(selected_host):
+                if j.t_inf - (selected_host.t_sample - t_inf_new) < 0:
+                    acceptable = False
+                    # print("kk")
+                    # print("...............",intento,int(selected_host),int(j),j.t_inf-(selected_host.t_sample-t_inf_new),j.t_inf,selected_host.t_sample,selected_host.t_sample-t_inf_new)
+                    break
+            else:
+                for j in self.T.predecessors(selected_host):
+                    if -(j.t_inf - (selected_host.t_sample - t_inf_new)) < 0:
+                        acceptable = False
+                        break
+                else:
+                    acceptable = True
+
+        # gg = self.pdf_sampling(t_inf_new)/self.pdf_sampling(selected_host.t_sample-selected_host.t_inf)
+        gg = ((t_inf_old2/t_inf_new ) ** (self.k_inf - 1) * np.exp(-(t_inf_old2 - t_inf_new) / self.theta_inf))
+        # pp2 = likelihood_ratio(self,selected_host,t_inf_old,selected_host.t_sample-t_inf_new,log=False)
+        # L_old = self.log_likelihood_transmission()
+
+        selected_host.t_inf = parent.t_inf + t_inf_new
         # Metropolis Hastings
         if P < 1:
             rnd = random()
