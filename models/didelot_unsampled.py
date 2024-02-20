@@ -439,10 +439,13 @@ class didelot_unsampled():
         #######                    INFECTION TIME                   ######
         ##################################################################
         ##################################################################
-        if selected_host is None: selected_host = sample(list(self.T.nodes()), 1)[0]
-        # print(selected_host.t_inf)
-        while selected_host.t_sample is None:
-            selected_host = sample(list(self.T.nodes()), 1)[0]
+        if selected_host is None:
+            while True:
+                selected_host = sample(list(self.T.nodes()), 1)[0]
+                if selected_host!=self.root_host:break
+
+
+
             # t_inf_old = selected_host.t_inf
             # print(selected_host.t_sample)
 
@@ -450,7 +453,7 @@ class didelot_unsampled():
 
         # print(t_inf_old)
         t_inf_old = selected_host.t_inf
-        t_inf_old2 = -selected_host.t_inf + selected_host.t_sample
+        t_inf_old2 = -selected_host.t_inf + parent.t_inf
 
         # We don't want transmissions happening before the infectors transmission
         acceptable = False
@@ -477,6 +480,10 @@ class didelot_unsampled():
 
         # gg = self.pdf_sampling(t_inf_new)/self.pdf_sampling(selected_host.t_sample-selected_host.t_inf)
         gg = ((t_inf_old2/t_inf_new ) ** (self.k_inf - 1) * np.exp(-(t_inf_old2 - t_inf_new) / self.theta_inf))
+        L_new = self.get_log_likelihood_transmission()
+
+        pp = np.exp(L_new - L_old)
+        P = gg * pp
         # pp2 = likelihood_ratio(self,selected_host,t_inf_old,selected_host.t_sample-t_inf_new,log=False)
         # L_old = self.log_likelihood_transmission()
 
