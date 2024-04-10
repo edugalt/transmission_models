@@ -2,10 +2,14 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 from random import choice,randint,random,sample,choices
-from scipy.stats import nbinom, gamma, binom, expon
+from scipy.stats import nbinom, gamma, binom, expon, norm
 from matplotlib.lines import Line2D
 import pandas as pd
 from networkx.drawing.nx_pydot import graphviz_layout
+try:
+    import imageio
+except ImportError:
+    pass
 
 
 #CLASSES
@@ -26,7 +30,7 @@ class host:
     - __str__(): Returns a string with the index of the host.
 
     Example usage:
-    >>> h = host(1, True, ['A', 'T', 'C', 'G'], 10, sample_time=15)
+    >>> h = host('host1', 1, ['A', 'T', 'C', 'G'], 10, t_sample=15)
     >>> print(h.t_inf)
     10
     >>> h.t_inf = 20
@@ -35,7 +39,7 @@ class host:
     >>> print(h.get_genetic_str())
     ATCG
     >>> print(h)
-    1
+    host1
 
     Note: This class follows the Python naming convention for class names (using PascalCase).
     """
@@ -142,11 +146,13 @@ def binom_mutation(chain_length,p,genome):
        - If the original nucleotide is 'G', it is replaced with a randomly chosen nucleotide from 'ACT'.
     5. Returns the mutated genome sequence as 'new_genome'.
 
+
     Example usage:
-    >>> genome = "ATCGGATCGA"
+    >>> genome = ['A', 'T', 'C', 'G', 'G', 'A', 'T', 'C', 'G', 'A']
     >>> mutated_genome = binom_mutation(len(genome), 0.2, genome)
     >>> print(mutated_genome)
-    ['A', 'T', 'C', 'A', 'G', 'A', 'T', 'C', 'G', 'A', 'A']
+    ['A', 'T', 'C', 'A', 'G', 'A', 'T', 'C', 'G', 'A']
+
 
     Note: The function requires the 'numpy' library for generating random numbers from a binomial distribution.
     """
@@ -193,10 +199,10 @@ def one_mutation(chain_length,p,genome):
     4. Returns the mutated genome sequence as 'new_genome'.
 
     Example usage:
-    >>> genome = "ATCGGATCGA"
+    >>> genome = ['A', 'T', 'C', 'G', 'G', 'A', 'T', 'C', 'G', 'A']
     >>> mutated_genome = one_mutation(len(genome), 0.2, genome)
     >>> print(mutated_genome)
-    ['A', 'T', 'C', 'A', 'G', 'A', 'T', 'C', 'G', 'T', 'A']
+    ['A', 'T', 'C', 'A', 'G', 'A', 'T', 'C', 'G', 'T']
 
     Note: The function requires the 'random' library for generating random numbers and choices.
     """
@@ -235,14 +241,44 @@ def average_mutations(mu,P_mut,tau,Dt,host_genetic):
     return mutations,t_mutations
 
 
-def plot_transmision_network(T,nodes_labels=False):
-    pos = graphviz_layout(T, prog="dot")
+def plot_transmision_network(T,nodes_labels=False,pos = None, highlighted_nodes = None, ax=None,to_frame=False, title=None, filename=None, show=True):
+    if pos is None:
+        pos = graphviz_layout(T, prog="dot")
     colors = ["red" if not h.sampled else "blue" for h in T]
     ColorLegend = {'tested': 2,'no tested': 1}
-    nx.draw(T, pos,with_labels=nodes_labels,node_color=colors)
+
+    if highlighted_nodes is not None:
+        edgecolors = ["black" if h not in highlighted_nodes else "green" for h in T]
+        linewidths = [0.0 if h not in highlighted_nodes else 3.0 for h in T]
+    else:
+        edgecolors = colors
+        linewidths = 1
+
+    if ax is None:
+        ax = plt.gca()
+
+    if title is not None:
+        ax.set_title(title)
+
+    nx.draw(T, pos,with_labels=nodes_labels,node_color=colors, edgecolors=edgecolors, linewidths=linewidths,ax=ax)
     legend_elements = [
         Line2D([0], [0], marker='o', color='w', label='tested',markerfacecolor='b', markersize=15),
         Line2D([0], [0], marker='o', color='w', label='no tested',markerfacecolor='r', markersize=15),
     ]
-    plt.legend(handles=legend_elements, loc='upper right')
-    plt.show()
+
+    if ax is None:
+        plt.legend(handles=legend_elements, loc='upper right')
+    else:
+        ax.legend(handles=legend_elements, loc='upper right')
+
+
+    if filename is not None:
+        plt.savefig(filename)
+
+    if to_frame:
+        plt.savefig('temp.png')
+        plt.close()  # Close the plot to prevent display
+        # Read the saved image and return it
+        return imageio.imread('temp.png')
+    if show:
+        plt.show()
