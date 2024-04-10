@@ -3,6 +3,8 @@ from transmission_models.utils import *
 from transmission_models.models.topology_movements import *
 
 from random import random
+from scipy.stats import nbinom, gamma, binom, expon, norm
+from scipy.special import gamma as GAMMA
 
 
 class didelot_unsampled():
@@ -45,6 +47,11 @@ class didelot_unsampled():
         self.pmf_offspring = lambda k: self.dist_offspring.pmf(k)
         self.samp_offspring = lambda: self.dist_offspring.rvs()
 
+        #Distribution in between
+
+        self.pdf_infection_in_between = lambda t,Dt: (pdf_in_between(self,Dt,t))
+
+
         self.T = nx.DiGraph()
         self.G = nx.DiGraph()
         self.host_dict = {}
@@ -56,6 +63,29 @@ class didelot_unsampled():
         self.N_candidates_to_chain_old = 0
         self.candidates_to_chain = []
         # def generate_networks(self):
+
+    def samp_t_inf_between(self, h1, h2):
+        """
+        Samples a time of infection between two hosts, one being the infector and the other the infected.
+        It use a rejection sampling method to sample the time of infection of the infected host using the chain model from Didelot et al. 2017.
+
+        Parameters:
+        -----------
+            h1: host object
+                Infector host.
+            h2: host object
+                Infected host.
+
+        Returns:
+        --------
+            t: float
+                Time of infection of the host infected by h1 and the infector of h2.
+
+        """
+        # Dt = abs(h1 - h2)
+
+        Dt = h2.t_inf-h1.t_inf
+        return sample_in_between(self,Dt)
 
     def add_root(self, t_sampl, id="0", genetic_data=[], t_inf=0, t_sample=None):
         self.root_host = host(id, 0, genetic_data, t_inf, t_sampl)
@@ -69,6 +99,21 @@ class didelot_unsampled():
 
     def out_degree(self, host):
         return self.T.out_degree(host)
+
+    def choose_successors(self, host, k=1):
+        """
+        Chooses k unique successors of a given host.
+
+        Parameters:
+            host: host object
+                Hosts whose successors will be chosen.
+            k: int
+                Number of successors to choose.
+
+        Returns:
+
+        """
+        return sample(list(self.successors(host)), k)
 
     def get_candidates_to_chain(self):
         self.candidates_to_chain = [h for h in self.T if

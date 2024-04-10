@@ -2,6 +2,10 @@ from transmission_models.models import *
 from transmission_models.models.didelot_unsampled import *
 from transmission_models.utils import *
 
+import scipy.special as sc
+import scipy.stats as st
+
+import numpy as np
 
 
 def tree_to_newick(g, root=None):
@@ -25,3 +29,9 @@ def tree_to_newick(g, root=None):
         else:
             L.append(str(h)+":{}".format(h.t_inf-root.t_inf))
     return "("+",".join(L)+"){}:{}".format(str(root),abs(root.t_inf))
+
+
+def pdf_in_between(model,Dt,t):
+    return st.beta(a=model.k_inf,b=model.k_inf,scale=Dt).pdf(t)
+def sample_in_between(model,Dt):
+    return st.beta(a=model.k_inf,b=model.k_inf,scale=Dt).rvs()
