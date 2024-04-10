@@ -1,21 +1,49 @@
-import random
+from random import random, sample, choice
 
 import networkx as nx
 import numpy as np
 
 
-def tree_slicing_to_parent(model, selected_host = None, parent = None, forced=False, verbose=False):
+def tree_slicing_to_offspring(model, selected_host = None, forced=False, verbose=False):
+    """
+    Slices a node reconnecting it with its grandparent. It passes from a chain model to a offspring model for the selected_host, its parent and grandparent.
+
+    Parameters:
+    -----------
+        model: transmission_models.models.didelot_unsampled.didelotUnsampled
+            model with the transmission network to apply the transformation
+        selected_host: host object. Default None
+            host to be sliced. If None, it is randomly selected
+        forced: bool. Default False
+            If True, the movement is forced because the other is not possible
+        verbose: bool. Default False
+            If True, it prints information about the movement
+
+    Returns:
+    --------
+        T_new: nx.DiGraph
+            New transmission network with the moves applied
+        gg: float
+            Ratio of proposals
+        selected_host: host object
+            Host sliced
+        parent: host object
+            Parent of the selected_host
+        grandparent: host object
+            Grandparent of the selected_host
+
+    """
     candidates = [h for h in model.T.nodes()
                   if h != model.root_host and model.root_host not in model.T.predecessors(h)]
     #Selecting node and its relatives
     if selected_host is None:
         #If there are no candidates, we slice to sibling and take into account the new ratio of proposals
         if len(candidates) == 0:
-            T_new,gg,selected_host,parent,grandparent = tree_slicing_to_sibling(model, forced=True, verbose=verbose)
+            T_new,gg,selected_host,parent,grandparent = tree_slicing_to_chain(model, forced=True, verbose=verbose)
             # gg = 2*gg
             return T_new,gg,selected_host,parent,grandparent
         try:
-            selected_host = random.sample(candidates, 1)[0]
+            selected_host = sample(candidates, 1)[0]
         except:
             raise ValueError("Merda!!! {}".format(candidates))
 #     if selected_host is None:
@@ -25,8 +53,7 @@ def tree_slicing_to_parent(model, selected_host = None, parent = None, forced=Fa
 #             selected_host = sample(list(model.T.nodes()),1)[0]
 #             parent = list(model.T.predecessors(selected_host))[0]
 #     print("after",int(selected_host))
-    if parent is None:
-        parent = list(model.T.predecessors(selected_host))[0]
+    parent = list(model.T.predecessors(selected_host))[0]
     grandparent = list(model.T.predecessors(parent))[0]
 
     #candidates to slice to sibling in new network
@@ -74,13 +101,35 @@ def tree_slicing_to_parent(model, selected_host = None, parent = None, forced=Fa
     return T_new,gg,selected_host,parent,grandparent
 
 
-def tree_slicing_to_sibling(model, selected_host=None, parent=None, selected_sibling=None, forced=False, verbose=False):
+def tree_slicing_to_chain(model, selected_host=None, selected_sibling=None, forced=False, verbose=False):
     """
+    Slices a node reconnecting it with one of its sibling. It passes from a offspring model to a chain model for the selected_host, its parent and the choosen sibling.
 
-    Parameters
-    ----------
-    forced
-    model : transmission_models.models.didelot_unsampled.didelot_unsampled
+    Parameters:
+    -----------
+     model : transmission_models.models.didelot_unsampled.didelot_unsampled
+        model with the transmission network to apply the transformation
+     selected_host: host object. Default None
+        host to be sliced. If None, it is randomly selected
+     selected_sibling: host object. Default None
+        sibling to connect the selected_host. If None, it is randomly selected
+     forced: bool. Default False
+        If True, the movement is forced because the other is not possible
+     verbose: bool. Default False
+        If True, it prints information about the movement
+
+    Returns:
+    --------
+    T_new: nx.DiGraph
+        New transmission network with the moves applied
+    gg: float
+        Ratio of proposals
+    selected_host: host object
+        Host sliced
+    parent: host object
+        Parent of the selected_host
+    selected_sibling: host object
+        Sibling now connected to the selected_host
     """
     candidates = [h for h in model.T.nodes()
                   if h != model.root_host and
@@ -91,21 +140,21 @@ def tree_slicing_to_sibling(model, selected_host=None, parent=None, selected_sib
     if selected_host is None:
         #If there are no candidates, we slice to sibling and take into account the new ratio of proposals
         if len(candidates) == 0:
-            T_new,gg,selected_host,parent,grandparent =  tree_slicing_to_parent(model, forced=True, verbose=verbose)
+            T_new,gg,selected_host,parent,grandparent = tree_slicing_to_offspring(model, forced=True, verbose=verbose)
             # gg = 2*gg
             return T_new,gg,selected_host,parent,grandparent
         try:
-            selected_host = random.sample(candidates, 1)[0]
+            selected_host = sample(candidates, 1)[0]
         except:
             raise ValueError("Merda!!! {}".format(candidates))
 
-    if parent is None:
-        parent = list(model.T.predecessors(selected_host))[0]
+
+    parent = list(model.T.predecessors(selected_host))[0]
 
     siblings = list(model.T.successors(parent))
     if selected_sibling is None:
         siblings.remove(selected_host)
-        selected_sibling = random.sample(siblings, 1)[0]
+        selected_sibling = sample(siblings, 1)[0]
 
 
     # Number of candidates of the new network
@@ -158,7 +207,7 @@ def tree_slicing_to_sibling(model, selected_host=None, parent=None, selected_sib
         print(f"\tgg: {gg}, N_new: {N_new}, k_out_parent:{model.out_degree(parent)}, Num candidates: {len(candidates)}")
     return T_new, gg, selected_host, parent, selected_sibling
 
-def tree_slicing_step(model):
+def tree_slicing_step(model,verbose=False):
     """
     Performs a tree slicing step in the transmission tree. Can be either to parent or sibling with equal probability.
 
@@ -171,11 +220,15 @@ def tree_slicing_step(model):
 
     L_old = model.get_log_likelihood_transmission()
 
-    if random.random() > 0.5:
-        T_new, gg, selected_host, h_a, h_b = tree_slicing_to_sibling(model)
+    if random() > 0.5:
+        if verbose:
+            print(f"Slicing to chain")
+        T_new, gg, selected_host, h_a, h_b = tree_slicing_to_chain(model)
 
     else:
-        T_new, gg, selected_host, h_a, h_b = tree_slicing_to_parent(model)
+        if verbose:
+            print(f"Slicing to offspring")
+        T_new, gg, selected_host, h_a, h_b = tree_slicing_to_offspring(model)
 
     L_new = model.log_likelihood_transmission_tree(T_new)
     pp = np.exp(L_new-L_old)
@@ -185,6 +238,8 @@ def tree_slicing_step(model):
 
     #Metropolis-Hastings algorithm
     if P>1:
+        if verbose:
+            print(f"\t-- Slicing accepted")
         model.T = T_new
         model.log_likelihood = L_new
         L_old = L_new
@@ -192,9 +247,16 @@ def tree_slicing_step(model):
         model.N_candidates_to_chain_old = model.N_candidates_to_chain
 
     else:
-        if random.random()<P:
+        if random()<P:
+            if verbose:
+                print(f"\t-- Slicing accepted")
             model.T = T_new
             model.log_likelihood = L_new
             L_old = L_new
             model.get_newick()
             model.N_candidates_to_chain_old = model.N_candidates_to_chain
+        else:
+            if verbose:
+                print(f"\t-- Slicing rejected")
+            model.N_candidates_to_chain = model.N_candidates_to_chain_old
+    return T_new,gg,pp,P,selected_host
