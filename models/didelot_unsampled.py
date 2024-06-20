@@ -1,10 +1,16 @@
+from itertools import combinations
+from math import factorial
+
 from transmission_models import *
-from transmission_models.utils import *
+import transmission_models.utils as utils
+# from transmission_models.utils import tree_to_newick
 from transmission_models.models.topology_movements import *
 
 from random import random
 from scipy.stats import nbinom, gamma, binom, expon, norm
 from scipy.special import gamma as GAMMA
+
+# from ..utils import tree_to_newick
 
 
 class didelot_unsampled():
@@ -118,6 +124,7 @@ class didelot_unsampled():
     def get_candidates_to_chain(self):
         self.candidates_to_chain = [h for h in self.T if
                                     not h == self.root_host and not self.out_degree(self.parent(h)) == 1]
+
         return self.candidates_to_chain
 
     def get_N_candidates_to_chain(self, recompute=False):
@@ -244,7 +251,9 @@ class didelot_unsampled():
         if host.sampled:
             # sigma = gamma.pdf(h.sample_time,1,h.t_inf,tr)
             sigma = self.pdf_sampling(host.t_sample - host.t_inf)
-            # print("--",int(h),sigma,h.t_inf,h.t_sample,h.t_inf-h.t_sample)
+            if host.t_inf>host.t_sample:
+                self.log_likelihood = -1e30
+                return self.log_likelihood
             Pi = self.pi * (sigma)
         else:
             Pi = (1 - self.pi)
@@ -258,9 +267,8 @@ class didelot_unsampled():
             # print("--",int(h),int(j),j.t_inf-h.t_inf,self.pdf_infection(j.t_inf-h.t_inf))
             sigma2 = self.pdf_infection(j.t_inf - host.t_inf)
             # print("------------------",int(h),int(j),h.t_inf,j.t_inf,j.t_inf-h.t_inf)
-            if sigma2 == 0:
+            if host.t_inf>j.t_inf:
                 self.log_likelihood = -1e30
-                #print("Impossible times!!!", int(host), int(j), host.t_inf, j.t_inf, j.t_inf - host.t_inf)
                 return self.log_likelihood
             Pi *= sigma2
         return np.log(Pi)
@@ -380,8 +388,8 @@ class didelot_unsampled():
 
         return self.G, self.T, self.host_dict
 
-    def get_newick(self):
-        self.newick = tree_to_newick(self.T, root=self.root_host)
+    def get_newick(self,lengths=True):
+        self.newick = utils.tree_to_newick(self.T, root=self.root_host,lengths=lengths)
 
         return self.newick
 
@@ -473,13 +481,20 @@ class didelot_unsampled():
 
         return t_inf_new, gg, pp, P, selected_host
 
-    def infection_time_from_infection_model_step(self, selected_host=None, metHast=True, verbose=False):
+    def infection_time_from_infection_model_step(self, selected_host=None, metHast=True, t_inf_new=None, verbose=False):
         """
         Method to change the infection time of a host and then accept the change using the Metropolis Hastings algorithm.
 
         Parameters
         ----------
-        verbose
+        selected_host: host object, default=None
+            Host whose infection time will be changed. If None, a host is randomly selected.
+        metHast: bool, default=True
+            If True, the Metropolis Hastings algorithm is used to accept or reject the change.
+        t_inf_new: float, default=None
+            New infection time for the host. If None, a new time is sampled.
+        verbose: bool, default=False
+            If True, prints the results of the step.
         """
         L_old = self.get_log_likelihood_transmission()
         rejects = 0
@@ -496,9 +511,6 @@ class didelot_unsampled():
 
 
 
-            # t_inf_old = selected_host.t_inf
-            # print(selected_host.t_sample)
-
         parent = self.parent(selected_host)
 
         # print(t_inf_old)
@@ -506,27 +518,45 @@ class didelot_unsampled():
         t_inf_old2 = +selected_host.t_inf - parent.t_inf
 
         # We don't want transmissions happening before the infectors transmission
-        acceptable = False
-        trys = 0
-
+        t_min = None
         # Choosing sampled node
-        while not acceptable:
-            trys += 1
-            # if verbose:print("tries",trys)
-            t_inf_new = self.samp_infection()
+        if t_inf_new is None:
             if self.out_degree(selected_host) == 0:
-                acceptable= True
-            for j in self.T.successors(selected_host):
-                if j.t_inf - (parent.t_inf + t_inf_new) < 0:
-                    acceptable = False
-                    # print("kk")
-                    # print("...............",trys,int(selected_host),int(j),j.t_inf-(selected_host.t_sample-t_inf_new),j.t_inf,selected_host.t_sample,selected_host.t_sample-t_inf_new)
-                    break
-            else:
-                acceptable = True
+                if selected_host.sampled:
+                    t_min = selected_host.t_sample-selected_host.t_inf
+                    t_inf_new = self.dist_infection.ppf(random() * self.dist_infection.cdf(t_min))
+                else:
+                    t_inf_new = self.samp_infection()
+                try:
+                    gg = ((t_inf_old2 / t_inf_new) ** (self.k_inf - 1) * np.exp(-(t_inf_old2 - t_inf_new) / self.theta_inf))
+                except RuntimeWarning:
+                    print(t_inf_old2, t_inf_new,self.pdf_infection(t_inf_new), self.k_inf, self.theta_inf,self.out_degree(selected_host),t_min,self.dist_infection.cdf(t_min))
+                    if t_inf_old2<0:
+                        print("NEGATIVE!!!",selected_host.t_inf , parent.t_inf)
+                    raise RuntimeWarning
 
-        # gg = self.pdf_sampling(t_inf_new)/self.pdf_sampling(selected_host.t_sample-selected_host.t_inf)
-        gg = ((t_inf_old2/t_inf_new ) ** (self.k_inf - 1) * np.exp(-(t_inf_old2 - t_inf_new) / self.theta_inf))
+                if metHast:
+                    selected_host.t_inf = parent.t_inf + t_inf_new
+                    self.log_likelihood = self.get_log_likelihood_transmission()
+
+                return t_inf_new, gg, 1/gg, 1, selected_host, True
+            else:
+                t_min = min(self.T.successors(selected_host), key=lambda j: j.t_inf).t_inf-parent.t_inf
+                if selected_host.sampled:
+                    t_min = min(selected_host.t_sample - selected_host.t_inf,t_min)
+                t_inf_new = self.dist_infection.ppf(random() * self.dist_infection.cdf(t_min))
+
+
+
+        try:
+            gg = ((t_inf_old2/t_inf_new ) ** (self.k_inf - 1) * np.exp(-(t_inf_old2 - t_inf_new) / self.theta_inf))
+        except RuntimeWarning:
+            print(t_inf_old2,t_inf_new,self.pdf_infection(t_inf_new),self.k_inf,self.theta_inf,selected_host.sampled,self.out_degree(selected_host),t_min,self.dist_infection.cdf(t_min))
+            if t_inf_old2<0:
+                print("NEGATIVE!!!",selected_host.t_inf , parent.t_inf)
+            raise RuntimeWarning
+
+
         selected_host.t_inf = parent.t_inf + t_inf_new
         L_new = self.get_log_likelihood_transmission()
 
@@ -535,22 +565,403 @@ class didelot_unsampled():
 
         pp = np.exp(L_new - L_old)
         P = gg * pp
+        if verbose:
+            print(f"t_inf_new: {t_inf_new}, t_inf_old: {t_inf_old2}, gg: {gg}, pp: {pp}, P: {P}, selected_host: {selected_host}")
         # pp2 = likelihood_ratio(self,selected_host,t_inf_old,selected_host.t_sample-t_inf_new,log=False)
         # L_old = self.log_likelihood_transmission()
 
         # Metropolis Hastings
         if metHast:
             if P > 1:
+                accepted = True
                 selected_host.t_inf = parent.t_inf + t_inf_new
                 self.log_likelihood = L_new
             else:
                 rnd = random()
                 # print(P,algo)
                 if rnd < P:
+                    accepted = True
                     selected_host.t_inf = parent.t_inf + t_inf_new
                     self.log_likelihood = L_new
                     # print("rejected",itt)
-        return t_inf_new, gg, pp, P, selected_host
+                else:
+                    accepted = False
+        return t_inf_new, gg, pp, P, selected_host, accepted
+
+    def add_unsampled_with_times(self, selected_host=None, P_rewiring=0.5, P_off=0.5, verbose=False,
+                                 only_geometrical=False, detailed_probs=False):
+        """
+        Method to propose the addition of an unsampled host to the transmission tree and get the probability of the proposal.
+
+        Parameters:
+        -----------
+
+        selected_host: host object
+            Host to which the unsampled host will be added. If None, a host is randomly selected.
+        P_rewiring: float
+            Probability of rewiring the new host to another sibling host.
+        P_off: float
+            Probability to rewire the new host to be a leaf.
+        verbose: bool
+            If True, prints the results of the step.
+        only_geometrical: bool
+            If True, only the proposal of the new topological structure will be considered.
+        detailed_probs: bool
+            If True, the method will return both probabilities of the proposals, of adding and removing a host.
+
+        Returns:
+        --------
+        T_new: DiGraph object
+            New transmission tree with the proposed changes.
+        gg: float
+            Ratio of the probabilities of the proposals.
+        g_go: float
+            Probability of the proposal of adding a host.
+        g_ret: float
+            Probability of the proposal of removing a host.
+        prob_time: float
+            Probability of the time of infection of the new host.
+        unsampled: host object
+            Unsampeld host to be added to the transmission tree.
+        added: bool
+            If True, the host was added to the transmission tree.
+
+        """
+        if selected_host is None:
+            selected_host = choice(list(self.T.nodes()))
+        #         print(str(selected_host),list(self.T.nodes()))
+        k_selected_host = self.out_degree(selected_host)
+
+        # Choosing add in new link or add between two nodes
+        if k_selected_host > 0:
+            sibling = self.choose_successors(selected_host)[0]
+            t_min = sibling.t_inf
+
+            Dt_max = t_min - selected_host.t_inf
+
+            link = [selected_host, sibling]
+        else:
+            sibling = None
+            Dt = self.samp_infection()
+            # if only_geometrical:prob_time = 1
+            prob_time = self.pdf_infection(Dt)
+
+        s = "U"
+        Dt = 0
+
+        try:
+            unsampled = host(s, -1, genetic_data=[], t_inf=(selected_host.t_inf + Dt))
+        except Exception as e:
+
+            print(sibling, selected_host)
+            for h in self.T:
+                print(h, type(h))
+            raise e
+        # N_no_leaves = len([h for h in self.T.nodes() if self.out_degree(h)>0])
+
+        # Rewiring
+
+        if random() < P_rewiring and k_selected_host != 0:
+            if verbose:
+                print("Trying to rewire too:")
+            if random() < P_off or k_selected_host == 1:
+                # The unsampled host slices to be with no childs (to offspring)
+                links = [(selected_host, unsampled)]
+                to_remove = []
+                if verbose:
+                    if k_selected_host > 1:
+                        print("\t Unsampled host will no infect no one")
+                    else:
+                        print("\t Unsampled host CANNOT infect no one")
+
+                if k_selected_host > 1:
+                    g_go = (1 / len(self.T)) * P_rewiring * P_off
+
+                    # links.append((unsampled,sibling))
+                else:
+                    g_go = (1 / len(self.T)) * P_rewiring
+                sibling = None
+                Dt_max = None
+                k_unsampled = 0
+
+                if not only_geometrical:
+                    Dt = self.dist_infection.ppf(random())
+                    unsampled.t_inf = selected_host.t_inf + Dt
+                    prob_time = self.pdf_infection(Dt)
+                    g_go *= prob_time
+
+            else:
+
+                k_unsampled = randint(1, k_selected_host - 1)
+                links = [(selected_host, unsampled), (unsampled, sibling)]
+                to_remove = [(selected_host, sibling)]
+                if verbose:
+                    print(f"\t Unsampled host will infect {k_unsampled + 1} people.")
+
+                # if k_unsampled>1:
+                to_go_down = utils.random_combination(
+                    combinations([h for h in self.successors(selected_host) if h != sibling], k_unsampled))[0]
+                comb_count = factorial(k_selected_host - 1) / (
+                (factorial(k_selected_host - k_unsampled) * factorial(k_unsampled)))
+
+                # Ps = prob_time
+                Dt_max = sibling.t_inf - selected_host.t_inf
+                for i, h in enumerate(to_go_down):
+                    # if k_unsampled ==1:print("-------",h,type(to_go_down))
+                    links.append((unsampled, h))
+                    to_remove.append((selected_host, h))
+                    # print(h,h.t_inf)
+                    if not only_geometrical and (h.t_inf - selected_host.t_inf) < Dt_max:
+                        Dt_max = h.t_inf - selected_host.t_inf
+                # if k_unsampled ==1:
+
+                k_unsampled += 1  # kph=2
+
+                g_go = (1 / len(self.T)) * (1 / (k_selected_host * (k_selected_host - 1)))
+                g_go *= k_unsampled * (factorial(k_unsampled - 1) * factorial(k_selected_host - k_unsampled) / (
+                    factorial(k_selected_host - 1)))
+
+                g_go *= (1 - P_off) * P_rewiring
+
+                if not only_geometrical:
+                    Dt = self.dist_infection.ppf(random() * self.dist_infection.cdf(Dt_max))
+                    unsampled.t_inf = selected_host.t_inf + Dt
+                    prob_time = self.pdf_infection(Dt) / self.dist_infection.cdf(Dt_max)
+                    g_go *= prob_time
+
+
+        else:
+            links = [(selected_host, unsampled)]
+            if k_selected_host > 0:
+                if verbose: print("No rewire:")
+                g_go = (1 / len(self.T)) * (1 - P_rewiring)
+                g_go *= (1 / k_selected_host)
+                if not only_geometrical:
+                    Dt_max = sibling.t_inf - selected_host.t_inf
+                    # print("------------",selected_host.t_inf - sibling.t_inf,selected_host.t_inf, sibling.t_inf)
+                    Dt = self.dist_infection.ppf(random() * self.dist_infection.cdf(Dt_max))
+                    unsampled.t_inf = selected_host.t_inf + Dt
+                    prob_time = self.pdf_infection(Dt) / self.dist_infection.cdf(Dt_max)
+                    g_go *= prob_time
+                k_unsampled = 1
+                links.append((unsampled, sibling))
+                to_remove = [(selected_host, sibling)]
+            else:
+                g_go = (1 / len(self.T))
+                Dt_max = None
+                if not only_geometrical:
+                    if verbose: print("No option for rewiring")
+                    Dt = self.dist_infection.ppf(random())
+                    unsampled.t_inf = selected_host.t_inf + Dt
+                    prob_time = self.pdf_infection(Dt)
+                    g_go *= prob_time
+                k_unsampled = 0
+                to_remove = []
+
+        if only_geometrical:
+            prob_time = None
+
+        # Ratio of proposals
+
+        g_ret = 1 / (len(self.unsampled_hosts) + 1)
+
+        if len(self.unsampled_hosts) == 0:
+            g_ret /= 2
+
+        gg = g_ret / g_go
+
+        # if abs(gg*prob_time-0.5)<1e-6:
+        #     print(gg,g_go,g_ret,len(self.T),(len(self.unsampled_hosts),k_selected_host))
+
+        if verbose:
+            if prob_time is not None:
+                if sibling is not None:
+                    print(
+                        f"ADDING:\nadd:\n\t-g(+1){g_go}, Dt {Dt}, Dt_max {Dt_max}, pt {prob_time}, g(+1)/pt {g_go / prob_time}\n\t-g(-1){g_ret}\n\tg_ret/g_go {g_ret / g_go}\nAdding {str(unsampled)} below {str(selected_host)} with degree {k_unsampled} and sibling {sibling} {sibling.t_inf}\n-----------------------------------------------------")
+                else:
+                    print(
+                        f"ADDING:\nadd:\n\t-g(+1){g_go}, Dt {Dt}, Dt_max {Dt_max}, pt {prob_time}, g(+1)/pt {g_go / prob_time}\n\t-g(-1){g_ret}\n\tg_ret/g_go {g_ret / g_go}\nAdding {str(unsampled)} below {str(selected_host)} with degree {k_unsampled} and sibling {sibling}\n-----------------------------------------------------")
+            else:
+                print(
+                    f"ADDING:\nadd:\n\t-g(+1){g_go}, pt {prob_time}, g(+1)/pt {g_go}\n\t-g(-1){g_ret}\n\tg_ret/g_go {g_ret / g_go}\nAdding {str(unsampled)} below {str(selected_host)} with degree {k_unsampled}\n-----------------------------------------------------")
+
+
+
+        T_new = nx.DiGraph(self.T)
+
+
+        T_new.remove_edges_from(to_remove)
+        T_new.add_edges_from(links)
+
+        if detailed_probs:
+            return T_new, gg, g_go, g_ret, prob_time, unsampled, True
+        else:
+            return T_new, gg, unsampled, True
+
+    def remove_unsampled_with_times(self, selected_host=None, P_rewiring=0.5, P_off=0.5, only_geometrical=False,
+                                    detailed_probs=False, verbose=False):
+        """
+        Method to propose the removal of an unsampled host from the transmission tree and get the probability of the proposal.
+        In case that no unsampled hosts are available, a new host is proposed to be added to the transmission tree.
+
+        Parameters:
+        -----------
+        selected_host: host object
+            Unsampled host to be removed from the transmission tree. If None, a host is randomly selected.
+        P_rewiring: float
+            Probability of rewiring the new host to another sibling host.
+        P_off: float
+            Probability to rewire the new host to be a leaf.
+        verbose: bool
+            If True, prints the results of the step.
+        only_geometrical: bool
+            If True, only the proposal of the new topological structure will be considered.
+        detailed_probs: bool
+            If True, the method will return both probabilities of the proposals, of adding and removing a host.
+
+        Returns:
+        --------
+        T_new: DiGraph object
+            New transmission tree with the proposed changes.
+        gg: float
+            Ratio of the probabilities of the proposals.
+        g_go: float
+            Probability of the proposal of adding a host.
+        g_ret: float
+            Probability of the proposal of removing a host.
+        prob_time: float
+            Probability of proposing the time of the selected_host.
+        added: bool
+            If True, the host was added to the transmission tree. Else, the node have been removed
+        """
+        if selected_host is None:
+            if len(self.unsampled_hosts) == 0:
+                if detailed_probs:
+                    T_new, gg, g_go, g_ret, pt, unsampled, added = self.add_unsampled_with_times(
+                                                                                            P_rewiring=P_rewiring,
+                                                                                            P_off=P_off,
+                                                                                            detailed_probs=detailed_probs,
+                                                                                            verbose=verbose)
+                    # print("---------",T_new,gg,g_go,g_ret,pt,unsampled,added)
+                    return T_new, gg, g_go, g_ret, pt, unsampled, added
+                else:
+                    T_new, gg, selected_host, added = self.add_unsampled_with_times( P_rewiring=P_rewiring,
+                                                                               P_off=P_off,
+                                                                               detailed_probs=detailed_probs,
+                                                                               verbose=verbose)
+                    return T_new, gg, unsampled, added
+                # gg /= 2
+
+            selected_host = choice(self.unsampled_hosts)
+        try:
+            k_selected_host = self.out_degree(selected_host)  # outdefgree selected host
+        except NetworkXError as e:
+            print(selected_host, type(selected_host))
+            raise e
+
+        try:
+            parent = self.parent(selected_host)
+        except NetworkXError as e:
+            # pos = hierarchy_pos_times(self.T,self.root_host)
+            pos = nx.spring_layout(self.T)
+            tm.plot_transmision_network(self.T, nodes_labels=True, pos=pos, highlighted_nodes=[selected_host])
+            raise e
+
+        k_parent = self.out_degree(parent)  # outdefgree parent
+        kappa = k_parent + k_selected_host
+        children = list(self.successors(selected_host))
+
+        # Ratio of proposals
+        ##probability of coming back
+        kappa = k_selected_host + k_parent
+
+        ## Probablities of times
+        # if only_geometrical:
+        ###Probability of having a time with no sibling
+        ###Sum of probabilities
+
+        if not only_geometrical:
+            Dt = selected_host.t_inf - parent.t_inf
+            p_t = self.pdf_infection(Dt)
+
+        g_go = 1 / len(self.unsampled_hosts)
+
+        new_len_prob = 1 / (len(self.T) - 1)
+        if k_selected_host == 0:
+            if verbose: print("Removing a leave (rewiring to offspring was choosed):")
+            if k_parent == 1:
+                if verbose: print("\t-It had no rewire")
+                g_ret = new_len_prob
+            elif k_parent == 2:
+                if verbose: print("\t-It had one possible rewire")
+                g_ret = new_len_prob * P_rewiring
+            elif k_parent > 2:
+                if verbose: print("\t-It had a rewire and to become a leave was an option")
+                g_ret = new_len_prob * P_rewiring * P_off
+            if not only_geometrical:
+                if verbose: print(f"\t-p_t {p_t} no Dt_max")
+                g_ret *= p_t
+
+                # print("ZERO!!!")
+        elif k_selected_host == 1:
+            if verbose: print("Removing a host with 1 sibling (no rewiring was choosed):")
+            if k_parent == 1:
+                g_ret = new_len_prob * (1 - P_rewiring)
+            else:
+                g_ret = new_len_prob * (1 - P_rewiring) / (kappa - 1)
+            if not only_geometrical:
+                Dt_max = next(self.successors(selected_host)).t_inf - parent.t_inf
+                p_t /= self.dist_infection.cdf(Dt_max)
+                if verbose: print(f"\t-p_t {p_t} with Dt {Dt} and Dt_max {Dt_max}")
+                g_ret *= p_t
+
+        else:
+            # # child = children[0]
+            # if k_parent==1:
+            if verbose: print("Removing a leave (rewiring to chain other hosts was choosen):")
+            g_ret = new_len_prob * P_rewiring * (1 - P_off)
+            g_ret *= factorial(k_parent - 1) * factorial(k_selected_host) / (
+                    (kappa - 1) * (kappa - 2) * factorial(kappa - 2))
+            if not only_geometrical:
+                Dt_max = 10000000000
+                for h in self.successors(selected_host):
+                    Dt_2 = h.t_inf - parent.t_inf
+                    if Dt_2 < Dt_max:
+                        Dt_max = Dt_2
+                p_t /= self.dist_infection.cdf(Dt_max)
+                if verbose: print(f"\t-p_t {p_t} with Dt {Dt} and Dt_max {Dt_max}")
+                g_ret *= p_t
+
+        if len(self.unsampled_hosts) == 1:
+            g_go /= 2
+
+        gg = g_ret / g_go
+
+        if only_geometrical:
+            pt = None
+
+        if verbose:
+            if only_geometrical:
+                print(
+                    f"remove:\n\t-g(+1){g_ret}, g(+1)/pt {g_ret}\n\t-g(-1){g_go}\n\tg_ret/g_go {g_ret / g_go}\n{len(self.unsampled_hosts), len(self.T), k_selected_host, k_parent, new_len_prob}\n-----------------------------------------------------")
+            else:
+                print(
+                    f"remove:\n\t-g(+1){g_ret},Dt {Dt},pt {p_t},g(+1)/pt {g_ret / p_t}\n\t-g(-1){g_go}\n\tg_ret/g_go {g_ret / g_go}\n{len(self.unsampled_hosts), len(self.T), k_selected_host, k_parent, new_len_prob}\n-----------------------------------------------------")
+        # rewiring
+        T_new = nx.DiGraph(self.T)
+        T_new.remove_edge(parent, selected_host)
+
+        for child in children:
+            T_new.remove_edge(selected_host, child)
+            T_new.add_edge(parent, child)
+
+        T_new.remove_node(selected_host)
+
+        if detailed_probs:
+            # print("AQUI!!!")
+            return T_new, gg, g_go, g_ret, p_t, selected_host, False
+        return T_new, gg, selected_host, False
+
 
     def MCMC_step(self, N_steps, verbose=False):
 

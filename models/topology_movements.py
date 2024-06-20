@@ -89,6 +89,9 @@ def tree_slicing_to_offspring(model, selected_host = None, forced=False, verbose
 
     # Correcting ratio of proposals (gg) and number of candidates (N_new)
     ## If this movement is forced because the other is not possible, we need to take into account the new ratio of proposals
+    if verbose:
+        print(f"len(T_new)-T_new.out_degree(model.root_host) -1 == 0:{len(T_new) - T_new.out_degree(model.root_host) - 1 == 0}")
+        print(f"forced: {forced}, model.N_candidates_to_chain_old==0: {model.N_candidates_to_chain_old == 0}")
     if len(T_new)-T_new.out_degree(model.root_host) -1 == 0:
         gg = 2*gg
     #If this movement is forced because the other is not possible, we need to take into account the new ratio of proposals
@@ -97,7 +100,7 @@ def tree_slicing_to_offspring(model, selected_host = None, forced=False, verbose
 #     LL_new = model.log_likelihood_transmission(T_new)
     if verbose:
         print(f"slicing node to be parent: Selected host: {selected_host}, Parent: {parent}, Grandparent:{grandparent}")
-        print(f"\tgg: {gg}, N_new: {N_new}, N_new2: {model.N_candidates_to_chain}, k_out_grandparent: {model.out_degree(grandparent)}, Num candidates: {len(candidates)}")
+        print(f"\tgg: {gg}, N_new: {N_new}, N_new2: {model.N_candidates_to_chain}, k_out_grandparent: {model.out_degree(grandparent)}, Num candidates: {len(candidates)}, Num candidates old: {model.N_candidates_to_chain_old}")
     return T_new,gg,selected_host,parent,grandparent
 
 
@@ -200,7 +203,7 @@ def tree_slicing_to_chain(model, selected_host=None, selected_sibling=None, forc
 
     if forced or len(model.T)-1-model.out_degree(model.root_host) == 0:
         gg = 0.5 * gg
-    elif len(candidates2)==0:
+    if len(candidates2)==0:
         gg = 2 * gg
     if verbose:
         print(f"slicing node to be sibling: Selected host: {selected_host}, Parent: {parent}, Sibling:{selected_sibling} ")
@@ -238,6 +241,7 @@ def tree_slicing_step(model,verbose=False):
 
     #Metropolis-Hastings algorithm
     if P>1:
+        accepted = True
         if verbose:
             print(f"\t-- Slicing accepted")
         model.T = T_new
@@ -248,6 +252,7 @@ def tree_slicing_step(model,verbose=False):
 
     else:
         if random()<P:
+            accepted = True
             if verbose:
                 print(f"\t-- Slicing accepted")
             model.T = T_new
@@ -256,7 +261,9 @@ def tree_slicing_step(model,verbose=False):
             model.get_newick()
             model.N_candidates_to_chain_old = model.N_candidates_to_chain
         else:
+            accepted = False
             if verbose:
                 print(f"\t-- Slicing rejected")
             model.N_candidates_to_chain = model.N_candidates_to_chain_old
-    return T_new,gg,pp,P,selected_host
+    return T_new,gg,pp,P,selected_host, accepted
+
