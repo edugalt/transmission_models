@@ -139,7 +139,7 @@ class didelot_unsampled():
         self.unsampled_hosts = [h for h in self.T if not h.sampled]
         return self.unsampled_hosts
 
-    def get_sampling_model_likelihood(self,hosts=None):
+    def get_sampling_model_likelihood(self,hosts=None,T=None):
         """
         Computes the likelihood of the sampling model given a list of hosts. If no list is given, the likelihood of the
         whole transmission tree is returned.
@@ -154,6 +154,8 @@ class didelot_unsampled():
                 The likelihood of the sampling model given the list of hosts
 
         """
+        if T is None:
+            T = self.T
         L = 1
         if hosts is not None:
             if isinstance(hosts,list):
@@ -168,14 +170,14 @@ class didelot_unsampled():
                 else:
                     L*=self.pi*self.pdf_sampling(hosts.t_sample-hosts.t_inf)
         else:
-            for h in self.T:
+            for h in T:
                 if not h.sampled:
                     L*=(1-self.pi)
                 else:
                     L*=self.pi*self.pdf_sampling(h.t_sample-h.t_inf)
         return L
 
-    def get_offspring_model_likelihood(self,hosts=None):
+    def get_offspring_model_likelihood(self,hosts=None,T=None):
         """
         Computes the likelihood of the offspring model given a list of hosts. If no list is given, the likelihood of the
         whole transmission tree is returned.
@@ -190,45 +192,53 @@ class didelot_unsampled():
                 The likelihood of the offspring model given the list of hosts
 
         """
+        if T is None:
+            T = self.T
         L = 1
         if hosts is not None:
             if isinstance(hosts,list):
                 for h in hosts:
-                    L*=self.pmf_offspring(self.T.out_degree(h))
+                    L*=self.pmf_offspring(T.out_degree(h))
             else:
-                L*=self.pmf_offspring(self.T.out_degree(hosts))
+                L*=self.pmf_offspring(T.out_degree(hosts))
         else:
-            for h in self.T:
-                L*=self.pmf_offspring(self.T.out_degree(h))
+            for h in T:
+                L*=self.pmf_offspring(T.out_degree(h))
         return L
 
-    def get_infection_model_likelihood(self,hosts=None):
+    def get_infection_model_likelihood(self,hosts=None,T=None):
         """
         Computes the likelihood of the infection model given a list of hosts. If no list is given, the likelihood of the
         whole transmission tree is returned.
 
         Parameters
         ----------
-        hosts: list of host objects
+            hosts: list of host objects
+
+            T: DiGraph object
+                Contagious tree which likelihood of the hosts will be computed. If it is None, the network of the model is used.
 
         Returns
         -------
             L: float
                 The likelihood of the infection model given the list of hosts
 
+
         """
+        if T is None:
+            T = model.T
         L = 1
         if hosts is not None:
             if isinstance(hosts,list):
                 for h in hosts:
-                    for j in self.T.successors(h):
+                    for j in T.successors(h):
                         L*=self.pdf_infection(j.t_inf-h.t_inf)
             else:
-                for j in self.T.successors(hosts):
+                for j in T.successors(hosts):
                     L*=self.pdf_infection(j.t_inf-hosts.t_inf)
         else:
-            for h in self.T:
-                for j in self.T.successors(h):
+            for h in T:
+                for j in T.successors(h):
                     L*=self.pdf_infection(j.t_inf-h.t_inf)
         return L
 
