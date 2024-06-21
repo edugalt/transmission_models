@@ -61,7 +61,17 @@ class didelot_unsampled():
         self.T = nx.DiGraph()
         self.G = nx.DiGraph()
         self.host_dict = {}
+
         self.log_likelihood = 0
+        self.likelihood = 0
+
+        self.infection_likelihood = 0
+        self.sampling_likelihood = 0
+        self.offspring_likelihood = 0
+        self.infection_log_likelihood = 0
+        self.sampling_log_likelihood = 0
+        self.offspring_log_likelihood = 0
+
         self.newick = None
         self.root_host = None
         self.unsampled_hosts = []
@@ -139,7 +149,7 @@ class didelot_unsampled():
         self.unsampled_hosts = [h for h in self.T if not h.sampled]
         return self.unsampled_hosts
 
-    def get_sampling_model_likelihood(self,hosts=None,T=None):
+    def get_sampling_model_likelihood(self,hosts=None,T=None, update=False):
         """
         Computes the likelihood of the sampling model given a list of hosts. If no list is given, the likelihood of the
         whole transmission tree is returned.
@@ -175,9 +185,11 @@ class didelot_unsampled():
                     L*=(1-self.pi)
                 else:
                     L*=self.pi*self.pdf_sampling(h.t_sample-h.t_inf)
+            if update:
+                self.sampling_likelihood = L
         return L
 
-    def get_offspring_model_likelihood(self,hosts=None,T=None):
+    def get_offspring_model_likelihood(self,hosts=None,T=None, update=False):
         """
         Computes the likelihood of the offspring model given a list of hosts. If no list is given, the likelihood of the
         whole transmission tree is returned.
@@ -204,9 +216,11 @@ class didelot_unsampled():
         else:
             for h in T:
                 L*=self.pmf_offspring(T.out_degree(h))
+            if update:
+                self.offspring_likelihood = L
         return L
 
-    def get_infection_model_likelihood(self,hosts=None,T=None):
+    def get_infection_model_likelihood(self,hosts=None,T=None, update=False):
         """
         Computes the likelihood of the infection model given a list of hosts. If no list is given, the likelihood of the
         whole transmission tree is returned.
@@ -218,6 +232,9 @@ class didelot_unsampled():
             T: DiGraph object
                 Contagious tree which likelihood of the hosts will be computed. If it is None, the network of the model is used.
 
+            update: bool
+                If True, the likelihood of the infection model is updated in the model object.
+
         Returns
         -------
             L: float
@@ -226,7 +243,7 @@ class didelot_unsampled():
 
         """
         if T is None:
-            T = model.T
+            T = self.T
         L = 1
         if hosts is not None:
             if isinstance(hosts,list):
@@ -240,9 +257,11 @@ class didelot_unsampled():
             for h in T:
                 for j in T.successors(h):
                     L*=self.pdf_infection(j.t_inf-h.t_inf)
+            if update:
+                self.infection_likelihood = L
         return L
 
-    def log_likelihood_host(self, host, T):
+    def log_likelihood_host(self, host, T=None):
         """
         Computes the log likelihood of a host given the transmission tree.
         Parameters
@@ -256,31 +275,18 @@ class didelot_unsampled():
             log_likelihood: float
                 The log likelihood of the host in the transmission network
         """
+        if T is None:
+            T = self.T
         Pi = 1
         # Sampling model
-        if host.sampled:
-            # sigma = gamma.pdf(h.sample_time,1,h.t_inf,tr)
-            sigma = self.pdf_sampling(host.t_sample - host.t_inf)
-            if host.t_inf>host.t_sample:
-                self.log_likelihood = -1e30
-                return self.log_likelihood
-            Pi = self.pi * (sigma)
-        else:
-            Pi = (1 - self.pi)
+        Pi *= self.get_sampling_model_likelihood(host,T)
 
         # Offspring model
-        Pi *= self.pmf_offspring(T.out_degree(host))
-        # print("--",int(h),self.pmf_offspring(self.T.out_degree(h)))
+        Pi *= self.get_offspring_model_likelihood(host,T)
 
         # Infection model
-        for j in T.successors(host):
-            # print("--",int(h),int(j),j.t_inf-h.t_inf,self.pdf_infection(j.t_inf-h.t_inf))
-            sigma2 = self.pdf_infection(j.t_inf - host.t_inf)
-            # print("------------------",int(h),int(j),h.t_inf,j.t_inf,j.t_inf-h.t_inf)
-            if host.t_inf>j.t_inf:
-                self.log_likelihood = -1e30
-                return self.log_likelihood
-            Pi *= sigma2
+        Pi *= self.get_infection_model_likelihood(host,T)
+
         return np.log(Pi)
 
     def log_likelihood_hosts_list(self, hosts, T):
@@ -328,8 +334,29 @@ class didelot_unsampled():
         return log_likelihood
 
     def get_log_likelihood_transmission(self):
-        self.log_likelihood = self.log_likelihood_transmission_tree(self.T)
+        self.sampling_likelihood = 1
+        self.infection_likelihood = 1
+        self.offspring_likelihood = 1
+
+        for h in self.T:
+            sampling_likelihood = self.get_sampling_model_likelihood(h)
+            infection_likelihood = self.get_infection_model_likelihood(h)
+            offspring_likelihood = self.get_offspring_model_likelihood(h)
+
+            self.sampling_likelihood *= sampling_likelihood
+            self.infection_likelihood *= infection_likelihood
+            self.offspring_likelihood *= offspring_likelihood
+
+            self.likelihood *= sampling_likelihood*offspring_likelihood*infection_likelihood
+
+        self.log_likelihood = np.log(self.likelihood)
+
+        self.sampling_log_likelihood = np.log(self.sampling_likelihood)
+        self.infection_log_likelihood = np.log(self.infection_likelihood)
+        self.offspring_log_likelihood = np.log(self.offspring_likelihood)
+
         return self.log_likelihood
+
 
     def create_transmision_phylogeny_nets(self, N, mu, P_mut):
         """
