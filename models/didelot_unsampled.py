@@ -338,6 +338,7 @@ class didelot_unsampled():
         self.infection_likelihood = 1
         self.offspring_likelihood = 1
         self.likelihood = 1
+        self.log_likelihood = 0
 
         for h in self.T:
             sampling_likelihood = self.get_sampling_model_likelihood(h)
@@ -348,10 +349,10 @@ class didelot_unsampled():
             self.infection_likelihood *= infection_likelihood
             self.offspring_likelihood *= offspring_likelihood
 
-            self.likelihood *= sampling_likelihood*offspring_likelihood*infection_likelihood
+            self.likelihood += np.log(sampling_likelihood*offspring_likelihood*infection_likelihood)
             # print(i,h,sampling_likelihood,offspring_likelihood,infection_likelihood,self.likelihood)
 
-        self.log_likelihood = np.log(self.likelihood)
+        self.likelihood = np.exp(self.log_likelihood)
 
         self.sampling_log_likelihood = np.log(self.sampling_likelihood)
         self.infection_log_likelihood = np.log(self.infection_likelihood)
