@@ -228,6 +228,12 @@ def tree_slicing_step(model,verbose=False):
             print(f"Slicing to chain")
         T_new, gg, selected_host, h_a, h_b = tree_slicing_to_chain(model)
 
+        if h_b.t_inf > selected_host.t_inf:
+            if verbose:
+                print(f"Impossible infection proposed!!: From {h_b} to {selected_host}")
+
+            model.N_candidates_to_chain = model.N_candidates_to_chain_old
+            return T_new, gg, 0, 0, selected_host, False
     else:
         if verbose:
             print(f"Slicing to offspring")
