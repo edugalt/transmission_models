@@ -1112,6 +1112,87 @@ class didelot_unsampled():
         return T_new, gg, selected_host, False
 
 
+    def add_remove_step(self, P_rewiring=0.5, P_off=0.5, metHast=True, verbose=False):
+        """
+        Method to propose the addition or removal of an unsampled host to the transmission tree and get the probability of the proposal.
+
+        Parameters:
+        -----------
+        P_rewiring: float
+            Probability of rewiring the new host to another sibling host.
+        P_off: float
+            Probability to rewire the new host to be a leaf.
+        metHast: bool
+            If True, the Metropolis Hastings algorithm is used to accept or reject the change.
+        verbose: bool
+            If True, prints the results of the step.
+
+        Returns:
+        --------
+
+        """
+
+        if random() < 0.5:
+            T_new, gg, unsampled, added =  self.add_unsampled_with_times( P_rewiring=P_rewiring, P_off=P_off, verbose=verbose)
+        else:
+            T_new, gg, unsampled, added =  self.remove_unsampled_with_times( P_rewiring=P_rewiring, P_off=P_off, verbose=verbose)
+
+        if added:
+            affected_hosts = [list(T_new.predecessors(unsampled))[0]] + [h for h in T_new.successors(unsampled)]
+            Delta_LL = self.Delta_log_likelihood_host( affected_hosts,T_new)+self.log_likelihood_hosts_list([unsampled],T_new)
+        else:
+            affected_hosts = [self.parent(unsampled)]+[h for h in self.successors(unsampled)]
+            Delta_LL = self.Delta_log_likelihood_host(affected_hosts,T_new)-self.log_likelihood_host(unsampled)
+
+        # L_new = self.log_likelihood_transmission_tree(T_new)
+
+        # nn = dict_replace.get(nn, nn)
+
+        pp = np.exp(Delta_LL)
+
+        P = gg * pp
+
+        if metHast:
+            if P > 1:
+                self.log_likelihood = self.log_likelihood+Delta_LL
+                self.T = T_new
+                accepted = True
+
+                if not added:
+                    if verbose:
+                        print(f"Removing host accepted with acceptance probability {P}")
+                    self.unsampled_hosts.remove(unsampled)
+                else:
+                    if verbose:
+                        print(f"Adding host accepted with acceptance probability {P}")
+                    self.unsampled_hosts.append(unsampled)
+            else:
+                if random() < P:
+                    accepted = True
+                    self.log_likelihood = self.log_likelihood+Delta_LL
+                    self.T = T_new
+
+                    if not added:
+                        if verbose:
+                            print(f"Removing host accepted with acceptance probability {P}")
+                        self.unsampled_hosts.remove(unsampled)
+                    else:
+                        if verbose:
+                            print(f"Adding host accepted with acceptance probability {P}")
+                        self.unsampled_hosts.append(unsampled)
+                else:
+
+                    if verbose:
+                        if added:
+                            print(f"Adding host rejected with rejection probability {1-P}")
+                        else:
+                            print(f"Removing host rejected with rejection probability {1-P}")
+                    accepted = False
+
+
+        return accepted
+
+
     def MCMC_step(self, N_steps, verbose=False):
 
         L_old = self.get_log_likelihood_transmission()
