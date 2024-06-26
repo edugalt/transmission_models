@@ -191,6 +191,31 @@ class didelot_unsampled():
                 self.sampling_likelihood = L
         return L
 
+    def Delta_log_sampling(self, hosts, T_end, T_ini=None):
+        """
+        Computes the change in the log likelihood of the sampling model given a list of hosts from T_ini to T_end
+
+        Parameters:
+        -----------
+            hosts: list of host objects
+            T_end: DiGraph object
+                Transmission tree at the end of the step
+            T_ini: DiGraph object or None
+                Transmission tree at the beginning of the step
+                If None, the transmission tree of the model (self.T) is used
+        Returns:
+        --------
+            Delta_log_likelihood: float
+                Change in the log likelihood of the sampling model
+        """
+        L_end = self.get_sampling_model_likelihood(hosts, T_end)
+
+        if T_ini is None:
+            T_ini = self.T
+
+        L_ini = self.get_sampling_model_likelihood(hosts, T_ini)
+        return np.log(L_end / L_ini)
+
     def get_offspring_model_likelihood(self,hosts=None,T=None, update=False):
         """
         Computes the likelihood of the offspring model given a list of hosts. If no list is given, the likelihood of the
@@ -221,6 +246,33 @@ class didelot_unsampled():
             if update:
                 self.offspring_likelihood = L
         return L
+
+    def Delta_log_offspring(self, hosts, T_end, T_ini=None):
+        """
+        Computes the change in the log likelihood of the offspring model given a list of hosts from T_ini to T_end
+
+        Parameters:
+        -----------
+            hosts: list of host objects
+            T_end: DiGraph object
+                Transmission tree at the end of the step
+            T_ini: DiGraph object
+                Transmission tree at the beginning of the step
+                If None, the transmission tree of the model (self.T) is used
+
+        Returns:
+        --------
+            Delta_log_likelihood: float
+                Change in the log likelihood of the offspring model
+        """
+        L_end = self.get_offspring_model_likelihood(hosts, T_end)
+
+        if T_ini is None:
+            T_ini = self.T
+
+        L_ini = self.get_offspring_model_likelihood(hosts, T_ini)
+        return np.log(L_end / L_ini)
+
 
     def get_infection_model_likelihood(self,hosts=None,T=None, update=False):
         """
@@ -263,6 +315,34 @@ class didelot_unsampled():
                 self.infection_likelihood = L
         return L
 
+    def Delta_log_infection(self, hosts, T_end, T_ini=None):
+        """
+        Computes the change in the log likelihood of the infection model given a list of hosts from T_ini to T_end
+
+        Parameters:
+        -----------
+            hosts: list of host objects
+            T_end: DiGraph object
+                Transmission tree at the end of the step
+            T_ini: DiGraph object
+                Transmission tree at the beginning of the step
+                If None, the transmission tree of the model (self.T) is used
+
+        Returns:
+        --------
+            Delta_log_likelihood: float
+                Change in the log likelihood of the infection model
+        """
+        L_end = self.get_infection_model_likelihood(hosts, T_end)
+
+        if T_ini is None:
+            T_ini = self.T
+
+        L_ini = self.get_infection_model_likelihood(hosts, T_ini)
+        return np.log(L_end / L_ini)
+
+
+
     def log_likelihood_host(self, host, T=None):
         """
         Computes the log likelihood of a host given the transmission tree.
@@ -290,6 +370,32 @@ class didelot_unsampled():
         Pi *= self.get_infection_model_likelihood(host,T)
 
         return np.log(Pi)
+
+    def Delta_log_likelihood_host(self, host, T_end, T_ini=None):
+        """
+        Computes the change in the log likelihood of a host given two transmissions trees: from T_ini to T_end
+
+        Parameters:
+        -----------
+            host: host object
+            T_end: DiGraph object
+                Transmission tree at the end of the step
+            T_ini: DiGraph object
+                Transmission tree at the beginning of the step
+                If None, the transmission tree of the model (self.T) is used
+
+        Returns:
+        --------
+            Delta_log_likelihood: float
+                Change in the log likelihood of the host
+        """
+        L_end = self.log_likelihood_host(host, T_end)
+
+        if T_ini is None:
+            T_ini = self.T
+
+        L_ini = self.log_likelihood_host(host, T_ini)
+        return L_end - L_ini
 
     def log_likelihood_hosts_list(self, hosts, T):
         log_likelihood = 0
