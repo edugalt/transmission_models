@@ -146,7 +146,7 @@ class didelot_unsampled():
         return self.N_candidates_to_chain
 
     def get_unsampled_hosts(self):
-        self.unsampled_hosts = [h for h in self.T if not h.sampled]
+        self.unsampled_hosts = [h for h in self.T if not h.sampled or h == self.root_host]
         return self.unsampled_hosts
 
     def get_sampling_model_likelihood(self,hosts=None,T=None, update=False):
@@ -340,7 +340,8 @@ class didelot_unsampled():
         self.likelihood = 1
         self.log_likelihood = 0
 
-        for h in self.T:
+        for i,h in enumerate(self.T):
+        # for h in self.T:
             sampling_likelihood = self.get_sampling_model_likelihood(h)
             infection_likelihood = self.get_infection_model_likelihood(h)
             offspring_likelihood = self.get_offspring_model_likelihood(h)
@@ -349,7 +350,7 @@ class didelot_unsampled():
             self.infection_likelihood *= infection_likelihood
             self.offspring_likelihood *= offspring_likelihood
 
-            self.likelihood += np.log(sampling_likelihood*offspring_likelihood*infection_likelihood)
+            self.log_likelihood += np.log(sampling_likelihood*offspring_likelihood*infection_likelihood)
             # print(i,h,sampling_likelihood,offspring_likelihood,infection_likelihood,self.likelihood)
 
         self.likelihood = np.exp(self.log_likelihood)
@@ -885,7 +886,7 @@ class didelot_unsampled():
                     # print("---------",T_new,gg,g_go,g_ret,pt,unsampled,added)
                     return T_new, gg, g_go, g_ret, pt, unsampled, added
                 else:
-                    T_new, gg, selected_host, added = self.add_unsampled_with_times( P_rewiring=P_rewiring,
+                    T_new, gg, unsampled, added = self.add_unsampled_with_times( P_rewiring=P_rewiring,
                                                                                P_off=P_off,
                                                                                detailed_probs=detailed_probs,
                                                                                verbose=verbose)
