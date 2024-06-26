@@ -9,6 +9,8 @@ from transmission_models.models.topology_movements import *
 from random import random
 from scipy.stats import nbinom, gamma, binom, expon, norm
 from scipy.special import gamma as GAMMA
+import networkx as nx
+from networkx.exception import NetworkXError
 
 # from ..utils import tree_to_newick
 
@@ -146,7 +148,7 @@ class didelot_unsampled():
         return self.N_candidates_to_chain
 
     def get_unsampled_hosts(self):
-        self.unsampled_hosts = [h for h in self.T if not h.sampled or h == self.root_host]
+        self.unsampled_hosts = [h for h in self.T if not h.sampled and h == self.root_host]
         return self.unsampled_hosts
 
     def get_sampling_model_likelihood(self,hosts=None,T=None, update=False):
