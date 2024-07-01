@@ -339,6 +339,10 @@ class didelot_unsampled():
             T_ini = self.T
 
         L_ini = self.get_infection_model_likelihood(hosts, T_ini)
+
+        # Delta2 = (self.k_inf-1)*np.log(h.t_inf/)
+        # print()
+
         return np.log(L_end / L_ini)
 
 
@@ -630,7 +634,150 @@ class didelot_unsampled():
 
         return t_inf_new, gg, pp, P, selected_host
 
-    def infection_time_from_infection_model_step(self, selected_host=None, metHast=True, t_inf_new=None, verbose=False):
+    # def infection_time_from_infection_model_step(self, selected_host=None, metHast=True, Dt_new=None, verbose=False):
+    #     """
+    #     Method to change the infection time of a host and then accept the change using the Metropolis Hastings algorithm.
+    #
+    #     Parameters
+    #     ----------
+    #     selected_host: host object, default=None
+    #         Host whose infection time will be changed. If None, a host is randomly selected.
+    #     metHast: bool, default=True
+    #         If True, the Metropolis Hastings algorithm is used to accept or reject the change.
+    #     t_inf_new: float, default=None
+    #         New infection time for the host. If None, a new time is sampled.
+    #     verbose: bool, default=False
+    #         If True, prints the results of the step.
+    #     """
+    #     L_old = self.get_log_likelihood_transmission()
+    #     rejects = 0
+    #
+    #     ##################################################################
+    #     ##################################################################
+    #     #######                    INFECTION TIME                   ######
+    #     ##################################################################
+    #     ##################################################################
+    #     if selected_host is None:
+    #         while True:
+    #             selected_host = sample(list(self.T.nodes()), 1)[0]
+    #             if selected_host != self.root_host: break
+    #
+    #     parent = self.parent(selected_host)
+    #
+    #     # print(t_inf_old)
+    #     t_inf_old = selected_host.t_inf
+    #     Dt_old = +selected_host.t_inf - parent.t_inf
+    #
+    #     # We don't want transmissions happening before the infectors transmission
+    #     t_min = None
+    #     # Choosing sampled node
+    #     if Dt_new is None:
+    #         if self.out_degree(selected_host) == 0 and not selected_host.sampled:
+    #             if selected_host.sampled:
+    #                 t_min = selected_host.t_sample - selected_host.t_inf
+    #                 Dt_new = self.dist_infection.ppf(random() * self.dist_infection.cdf(t_min))
+    #             else:
+    #                 Dt_new = self.samp_infection()
+    #             try:
+    #                 gg = ((Dt_old / Dt_new) ** (self.k_inf - 1) * np.exp(-(Dt_old - Dt_new) / self.theta_inf))
+    #             except RuntimeWarning:
+    #                 print(Dt_old, Dt_new, self.pdf_infection(Dt_new), self.k_inf, self.theta_inf,
+    #                       self.out_degree(selected_host), t_min, self.dist_infection.cdf(t_min))
+    #                 if Dt_old < 0:
+    #                     print("NEGATIVE!!!", selected_host.t_inf, parent.t_inf)
+    #                 raise RuntimeWarning
+    #
+    #             if metHast:
+    #                 selected_host.t_inf = parent.t_inf + Dt_new
+    #                 t_inf_new = selected_host.t_inf
+    #                 self.log_likelihood = self.get_log_likelihood_transmission()
+    #                 L_new = self.log_likelihood
+    #             # # if selected_host.sampled:
+    #             # DL = (self.k_inf - 1) * np.log(Dt_new / Dt_old) - ((Dt_new - Dt_old) / self.theta_inf)
+    #             # for h in self.successors(selected_host):
+    #             #     Dt_h_old = h.t_inf - t_inf_old
+    #             #     Dt_h_new = h.t_inf - t_inf_new
+    #             #     DL += (self.k_inf - 1) * np.log(Dt_h_new / Dt_h_old) - ((Dt_h_new - Dt_h_old) / self.theta_inf)
+    #             #
+    #             # if selected_host.sampled:
+    #             #     Dt_samp_old = selected_host.t_sample - t_inf_old
+    #             #     Dt_samp_new = selected_host.t_sample - t_inf_new
+    #             #     DL += (self.k_samp - 1) * np.log(Dt_samp_new / Dt_samp_old) - (
+    #             #             (Dt_samp_new - Dt_samp_old) / self.theta_samp)
+    #             #
+    #             #
+    #             # print(
+    #             #     f"A saco {L_new - L_old}, solo cambios {DL}, diff {L_new - L_old - DL}, similar? {np.abs(L_new - L_old - DL) < 1e-9},sampled? {selected_host.sampled}")
+    #             #
+    #             # print(f"\t--> pp={np.exp(L_new - L_old)}, gg={gg}, P={gg * np.exp(L_new - L_old)}")
+    #             return Dt_new, gg, 1 / gg, 1, selected_host, True
+    #         else:
+    #             # No leaf
+    #             if self.out_degree(selected_host) > 0:
+    #                 t_min = min(self.T.successors(selected_host), key=lambda j: j.t_inf).t_inf - parent.t_inf
+    #                 # No leaf and sampled
+    #                 if selected_host.sampled:
+    #                     t_min = min(selected_host.t_sample - selected_host.t_inf, t_min)
+    #             else:
+    #                 # Leaf and sampled
+    #                 t_min = selected_host.t_sample - selected_host.t_inf
+    #             Dt_new = self.dist_infection.ppf(random() * self.dist_infection.cdf(t_min))
+    #
+    #     try:
+    #         gg = ((Dt_old / Dt_new) ** (self.k_inf - 1) * np.exp(-(Dt_old - Dt_new) / self.theta_inf))
+    #     except RuntimeWarning:
+    #         print(Dt_old, Dt_new, self.pdf_infection(Dt_new), self.k_inf, self.theta_inf, selected_host.sampled,
+    #               self.out_degree(selected_host), t_min, self.dist_infection.cdf(t_min))
+    #         if Dt_old < 0:
+    #             print("NEGATIVE!!!", selected_host.t_inf, parent.t_inf)
+    #         raise RuntimeWarning
+    #
+    #     # t_inf_old = selected_host.t_inf
+    #     selected_host.t_inf = parent.t_inf + Dt_new
+    #     t_inf_new = selected_host.t_inf
+    #     L_new = self.get_log_likelihood_transmission()
+    #
+    #     # DL = (self.k_inf-1)*np.log(Dt_new/Dt_old) - ((Dt_new-Dt_old)/self.theta_inf)
+    #     # for h in self.successors(selected_host):
+    #     #     Dt_h_old = h.t_inf-t_inf_old
+    #     #     Dt_h_new = h.t_inf-t_inf_new
+    #     #     DL += (self.k_inf-1)*np.log(Dt_h_new/Dt_h_old) - ((Dt_h_new-Dt_h_old)/self.theta_inf)
+    #     #
+    #     # if selected_host.sampled:
+    #     #     Dt_samp_old = selected_host.t_sample-t_inf_old
+    #     #     Dt_samp_new = selected_host.t_sample-t_inf_new
+    #     #     DL += (self.k_samp-1)*np.log(Dt_samp_new/Dt_samp_old) - ((Dt_samp_new-Dt_samp_old)/self.theta_samp)
+    #     #     # DL += (self.k_inf - 1) * np.log(t_inf_new / Dt_samp_old) - ((t_inf_new - Dt_samp_old) / self.theta_inf)
+    #     #
+    #     # selected_host.t_inf = t_inf_old
+    #     self.log_likelihood = L_old
+    #     # print(f"A saco {L_new-L_old}, solo cambios {DL}, diff {L_new-L_old-DL}, similar? {np.abs(L_new-L_old-DL)<1e-9},sampled? {selected_host.sampled}")
+    #     pp = np.exp(L_new - L_old)
+    #     P = gg * pp
+    #     if verbose:
+    #         print(f"Dt_new: {Dt_new}, Dt_old: {Dt_old}, gg: {gg}, pp: {pp}, P: {P}, selected_host: {selected_host}")
+    #     # pp2 = likelihood_ratio(self,selected_host,t_inf_old,selected_host.t_sample-Dt_new,log=False)
+    #     # L_old = self.log_likelihood_transmission()
+    #
+    #     accepted = False
+    #     # Metropolis Hastings
+    #     if metHast:
+    #         if P > 1:
+    #             accepted = True
+    #             selected_host.t_inf = parent.t_inf + Dt_new
+    #             self.log_likelihood = L_new
+    #         else:
+    #             rnd = random()
+    #             # print(P,algo)
+    #             if rnd < P:
+    #                 accepted = True
+    #                 selected_host.t_inf = parent.t_inf + Dt_new
+    #                 self.log_likelihood = L_new
+    #                 # print("rejected",itt)
+    #             else:
+    #                 accepted = False
+    #     return Dt_new, gg, pp, P, selected_host, accepted
+    def infection_time_from_infection_model_step(self, selected_host=None, metHast=True, Dt_new=None, verbose=False):
         """
         Method to change the infection time of a host and then accept the change using the Metropolis Hastings algorithm.
 
@@ -645,8 +792,8 @@ class didelot_unsampled():
         verbose: bool, default=False
             If True, prints the results of the step.
         """
-        L_old = self.get_log_likelihood_transmission()
-        rejects = 0
+        # L_old = self.get_log_likelihood_transmission()
+        # rejects = 0
 
         ##################################################################
         ##################################################################
@@ -664,78 +811,119 @@ class didelot_unsampled():
 
         # print(t_inf_old)
         t_inf_old = selected_host.t_inf
-        t_inf_old2 = +selected_host.t_inf - parent.t_inf
+        Dt_old = +selected_host.t_inf - parent.t_inf
 
         # We don't want transmissions happening before the infectors transmission
         t_min = None
         # Choosing sampled node
-        if t_inf_new is None:
-            if self.out_degree(selected_host) == 0:
+        if Dt_new is None:
+            if self.out_degree(selected_host) == 0 and not selected_host.sampled:
                 if selected_host.sampled:
                     t_min = selected_host.t_sample-selected_host.t_inf
-                    t_inf_new = self.dist_infection.ppf(random() * self.dist_infection.cdf(t_min))
+                    Dt_new = self.dist_infection.ppf(random() * self.dist_infection.cdf(t_min))
                 else:
-                    t_inf_new = self.samp_infection()
+                    Dt_new = self.samp_infection()
                 try:
-                    gg = ((t_inf_old2 / t_inf_new) ** (self.k_inf - 1) * np.exp(-(t_inf_old2 - t_inf_new) / self.theta_inf))
+                    gg = ((Dt_old / Dt_new) ** (self.k_inf - 1) * np.exp(-(Dt_old - Dt_new) / self.theta_inf))
                 except RuntimeWarning:
-                    print(t_inf_old2, t_inf_new,self.pdf_infection(t_inf_new), self.k_inf, self.theta_inf,self.out_degree(selected_host),t_min,self.dist_infection.cdf(t_min))
-                    if t_inf_old2<0:
+                    print(Dt_old, Dt_new, self.pdf_infection(Dt_new), self.k_inf, self.theta_inf, self.out_degree(selected_host), t_min, self.dist_infection.cdf(t_min))
+                    if Dt_old<0:
                         print("NEGATIVE!!!",selected_host.t_inf , parent.t_inf)
                     raise RuntimeWarning
 
+                if verbose:
+                    print(
+                        f"Dt_new: {Dt_new}, Dt_old: {Dt_old}, gg: {gg}, pp: {1/pp}, P: {1}, selected_host: {selected_host}")
                 if metHast:
-                    selected_host.t_inf = parent.t_inf + t_inf_new
-                    self.log_likelihood = self.get_log_likelihood_transmission()
-
-                return t_inf_new, gg, 1/gg, 1, selected_host, True
+                    selected_host.t_inf = parent.t_inf + Dt_new
+                    t_inf_new = selected_host.t_inf
+                    # self.log_likelihood = self.get_log_likelihood_transmission()
+                    L_new = self.log_likelihood
+                # # if selected_host.sampled:
+                # DL = (self.k_inf - 1) * np.log(Dt_new / Dt_old) - ((Dt_new - Dt_old) / self.theta_inf)
+                # for h in self.successors(selected_host):
+                #     Dt_h_old = h.t_inf - t_inf_old
+                #     Dt_h_new = h.t_inf - t_inf_new
+                #     DL += (self.k_inf - 1) * np.log(Dt_h_new / Dt_h_old) - ((Dt_h_new - Dt_h_old) / self.theta_inf)
+                #
+                # if selected_host.sampled:
+                #     Dt_samp_old = selected_host.t_sample - t_inf_old
+                #     Dt_samp_new = selected_host.t_sample - t_inf_new
+                #     DL += (self.k_samp - 1) * np.log(Dt_samp_new / Dt_samp_old) - (
+                #             (Dt_samp_new - Dt_samp_old) / self.theta_samp)
+                #
+                #
+                # print(
+                #     f"A saco {L_new - L_old}, solo cambios {DL}, diff {L_new - L_old - DL}, similar? {np.abs(L_new - L_old - DL) < 1e-9},sampled? {selected_host.sampled}")
+                #
+                # print(f"\t--> pp={np.exp(L_new - L_old)}, gg={gg}, P={gg * np.exp(L_new - L_old)}")
+                return Dt_new, gg, 1 / gg, 1, selected_host, True
             else:
-                t_min = min(self.T.successors(selected_host), key=lambda j: j.t_inf).t_inf-parent.t_inf
-                if selected_host.sampled:
-                    t_min = min(selected_host.t_sample - selected_host.t_inf,t_min)
-                t_inf_new = self.dist_infection.ppf(random() * self.dist_infection.cdf(t_min))
+                #No leaf
+                if self.out_degree(selected_host) > 0:
+                    t_min = min(self.T.successors(selected_host), key=lambda j: j.t_inf).t_inf-parent.t_inf
+                    #No leaf and sampled
+                    if selected_host.sampled:
+                        t_min = min(selected_host.t_sample - selected_host.t_inf,t_min)
+                else:
+                    #Leaf and sampled
+                    t_min = selected_host.t_sample-selected_host.t_inf
+                Dt_new = self.dist_infection.ppf(random() * self.dist_infection.cdf(t_min))
 
 
 
         try:
-            gg = ((t_inf_old2/t_inf_new ) ** (self.k_inf - 1) * np.exp(-(t_inf_old2 - t_inf_new) / self.theta_inf))
+            gg = ((Dt_old / Dt_new) ** (self.k_inf - 1) * np.exp(-(Dt_old - Dt_new) / self.theta_inf))
         except RuntimeWarning:
-            print(t_inf_old2,t_inf_new,self.pdf_infection(t_inf_new),self.k_inf,self.theta_inf,selected_host.sampled,self.out_degree(selected_host),t_min,self.dist_infection.cdf(t_min))
-            if t_inf_old2<0:
+            print(Dt_old, Dt_new, self.pdf_infection(Dt_new), self.k_inf, self.theta_inf, selected_host.sampled, self.out_degree(selected_host), t_min, self.dist_infection.cdf(t_min))
+            if Dt_old<0:
                 print("NEGATIVE!!!",selected_host.t_inf , parent.t_inf)
             raise RuntimeWarning
 
+        # t_inf_old = selected_host.t_inf
+        selected_host.t_inf = parent.t_inf + Dt_new
+        t_inf_new = selected_host.t_inf
+        # L_new = self.get_log_likelihood_transmission()
 
-        selected_host.t_inf = parent.t_inf + t_inf_new
-        L_new = self.get_log_likelihood_transmission()
+        DL = (self.k_inf-1)*np.log(Dt_new/Dt_old) - ((Dt_new-Dt_old)/self.theta_inf)
+        for h in self.successors(selected_host):
+            Dt_h_old = h.t_inf-t_inf_old
+            Dt_h_new = h.t_inf-t_inf_new
+            DL += (self.k_inf-1)*np.log(Dt_h_new/Dt_h_old) - ((Dt_h_new-Dt_h_old)/self.theta_inf)
 
-        selected_host.t_inf = t_inf_old
-        self.log_likelihood = L_old
+        if selected_host.sampled:
+            Dt_samp_old = selected_host.t_sample-t_inf_old
+            Dt_samp_new = selected_host.t_sample-t_inf_new
+            DL += (self.k_samp-1)*np.log(Dt_samp_new/Dt_samp_old) - ((Dt_samp_new-Dt_samp_old)/self.theta_samp)
+            # DL += (self.k_inf - 1) * np.log(t_inf_new / Dt_samp_old) - ((t_inf_new - Dt_samp_old) / self.theta_inf)
 
-        pp = np.exp(L_new - L_old)
+
+        # print(f"A saco {L_new-L_old}, solo cambios {DL}, diff {L_new-L_old-DL}, similar? {np.abs(L_new-L_old-DL)<1e-9},sampled? {selected_host.sampled}")
+        pp = np.exp(DL)
         P = gg * pp
         if verbose:
-            print(f"t_inf_new: {t_inf_new}, t_inf_old: {t_inf_old2}, gg: {gg}, pp: {pp}, P: {P}, selected_host: {selected_host}")
-        # pp2 = likelihood_ratio(self,selected_host,t_inf_old,selected_host.t_sample-t_inf_new,log=False)
+            print(f"Dt_new: {Dt_new}, Dt_old: {Dt_old}, gg: {gg}, pp: {pp}, P: {P}, selected_host: {selected_host}")
+        # pp2 = likelihood_ratio(self,selected_host,t_inf_old,selected_host.t_sample-Dt_new,log=False)
         # L_old = self.log_likelihood_transmission()
 
+        accepted = False
         # Metropolis Hastings
         if metHast:
             if P > 1:
                 accepted = True
-                selected_host.t_inf = parent.t_inf + t_inf_new
-                self.log_likelihood = L_new
+                selected_host.t_inf = parent.t_inf + Dt_new
+                self.log_likelihood += DL
             else:
                 rnd = random()
                 # print(P,algo)
                 if rnd < P:
                     accepted = True
-                    selected_host.t_inf = parent.t_inf + t_inf_new
-                    self.log_likelihood = L_new
+                    selected_host.t_inf = parent.t_inf + Dt_new
+                    self.log_likelihood += DL
                     # print("rejected",itt)
                 else:
                     accepted = False
-        return t_inf_new, gg, pp, P, selected_host, accepted
+        return Dt_new, gg, pp, P, selected_host, accepted
 
     def add_unsampled_with_times(self, selected_host=None, P_rewiring=0.5, P_off=0.5, verbose=False,
                                  only_geometrical=False, detailed_probs=False):
