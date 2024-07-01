@@ -48,7 +48,22 @@ def random_combination(iterable, r=1):
     n = len(pool)
     indices = sorted(sample(range(n), r))
     return tuple(pool[i] for i in indices)
+def Delta_log_gamma(Dt_ini,Dt_end,k,theta):
+    """
+    Compute the log likelihood of the gamma distribution for the time between two events.
 
+    Parameters:
+    -----------
+        Dt_ini: float
+            Initial time
+        Dt_end: float
+            End time
+    Returns:
+    --------
+        float
+            Difference of the log likelihood of the gamma distribution
+    """
+    return (k-1)*np.log(Dt_end/Dt_ini) - ((Dt_end-Dt_ini)/theta)
 
 def hierarchy_pos(G, root=None, width=1., vert_gap=0.2, vert_loc=0, xcenter=0.5):
     '''
