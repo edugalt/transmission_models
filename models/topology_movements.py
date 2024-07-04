@@ -31,6 +31,8 @@ def tree_slicing_to_offspring(model, selected_host = None, forced=False, verbose
             Parent of the selected_host
         grandparent: host object
             Grandparent of the selected_host
+        to_chain: bool
+            If True, the proposal was to reconnect selected_host to be connected with one of its brother. Else, it was reconnected to its grandparent
 
     """
     candidates = [h for h in model.T.nodes()
@@ -39,9 +41,9 @@ def tree_slicing_to_offspring(model, selected_host = None, forced=False, verbose
     if selected_host is None:
         #If there are no candidates, we slice to sibling and take into account the new ratio of proposals
         if len(candidates) == 0:
-            T_new,gg,selected_host,parent,grandparent = tree_slicing_to_chain(model, forced=True, verbose=verbose)
+            T_new,gg,selected_host,parent,grandparent,to_chain = tree_slicing_to_chain(model, forced=True, verbose=verbose)
             # gg = 2*gg
-            return T_new,gg,selected_host,parent,grandparent
+            return T_new,gg,selected_host,parent,grandparent,to_chain
         try:
             selected_host = sample(candidates, 1)[0]
         except:
@@ -101,7 +103,7 @@ def tree_slicing_to_offspring(model, selected_host = None, forced=False, verbose
     if verbose:
         print(f"slicing node to be parent: Selected host: {selected_host}, Parent: {parent}, Grandparent:{grandparent}")
         print(f"\tgg: {gg}, N_new: {N_new}, N_new2: {model.N_candidates_to_chain}, k_out_grandparent: {model.out_degree(grandparent)}, Num candidates: {len(candidates)}, Num candidates old: {model.N_candidates_to_chain_old}")
-    return T_new,gg,selected_host,parent,grandparent
+    return T_new,gg,selected_host,parent,grandparent,False
 
 
 def tree_slicing_to_chain(model, selected_host=None, selected_sibling=None, forced=False, verbose=False):
@@ -133,6 +135,8 @@ def tree_slicing_to_chain(model, selected_host=None, selected_sibling=None, forc
         Parent of the selected_host
     selected_sibling: host object
         Sibling now connected to the selected_host
+    to_chain: bool
+        If True, the proposal was to reconnect selected_host to be connected with one of its brother. Else, it was reconnected to its grandparent
     """
     candidates = [h for h in model.T.nodes()
                   if h != model.root_host and
@@ -143,9 +147,9 @@ def tree_slicing_to_chain(model, selected_host=None, selected_sibling=None, forc
     if selected_host is None:
         #If there are no candidates, we slice to sibling and take into account the new ratio of proposals
         if len(candidates) == 0:
-            T_new,gg,selected_host,parent,grandparent = tree_slicing_to_offspring(model, forced=True, verbose=verbose)
+            T_new,gg,selected_host,parent,grandparent,to_chain = tree_slicing_to_offspring(model, forced=True, verbose=verbose)
             # gg = 2*gg
-            return T_new,gg,selected_host,parent,grandparent
+            return T_new,gg,selected_host,parent,grandparent,to_chain
         try:
             selected_host = sample(candidates, 1)[0]
         except:
@@ -208,7 +212,7 @@ def tree_slicing_to_chain(model, selected_host=None, selected_sibling=None, forc
     if verbose:
         print(f"slicing node to be sibling: Selected host: {selected_host}, Parent: {parent}, Sibling:{selected_sibling} ")
         print(f"\tgg: {gg}, N_new: {N_new}, k_out_parent:{model.out_degree(parent)}, Num candidates: {len(candidates)}")
-    return T_new, gg, selected_host, parent, selected_sibling
+    return T_new, gg, selected_host, parent, selected_sibling,True
 
 def tree_slicing_step(model,verbose=False):
     """
@@ -221,26 +225,39 @@ def tree_slicing_step(model,verbose=False):
 
     """
 
-    L_old = model.get_log_likelihood_transmission()
+    # L_old = model.get_log_likelihood_transmission()
 
     if random() > 0.5:
         if verbose:
             print(f"Slicing to chain")
-        T_new, gg, selected_host, h_a, h_b = tree_slicing_to_chain(model)
-
-        if h_b.t_inf > selected_host.t_inf:
-            if verbose:
-                print(f"Impossible infection proposed!!: From {h_b} to {selected_host}")
-
-            model.N_candidates_to_chain = model.N_candidates_to_chain_old
-            return T_new, gg, 0, 0, selected_host, False
+        T_new, gg, selected_host, h_a, h_b, to_chain = tree_slicing_to_chain(model)
     else:
         if verbose:
             print(f"Slicing to offspring")
-        T_new, gg, selected_host, h_a, h_b = tree_slicing_to_offspring(model)
+        T_new, gg, selected_host, h_a, h_b, to_chain = tree_slicing_to_offspring(model)
 
-    L_new = model.log_likelihood_transmission_tree(T_new)
-    pp = np.exp(L_new-L_old)
+    # If to_chain and a link is impossible to exists, automatically reject the proposal
+    if (h_b.t_inf > selected_host.t_inf) and to_chain:
+        if verbose:
+            print(f"Impossible infection proposed!!: From {h_b} to {selected_host}")
+        model.N_candidates_to_chain = model.N_candidates_to_chain_old
+        return T_new, gg, 0, 0, selected_host, False
+
+    if to_chain:
+        Delta = model.log_likelihood_hosts_list([selected_host, h_a, h_b],
+                                                T_new) - model.log_likelihood_hosts_list(
+            [selected_host, h_b, h_a], model.T)
+    else:
+        Delta = model.log_likelihood_hosts_list([selected_host, h_a, h_b],
+                                                T_new) - model.log_likelihood_hosts_list(
+            [selected_host, h_b, h_a], model.T)
+
+
+    # L_new = model.log_likelihood_transmission_tree(T_new)
+    pp = np.exp(Delta)
+    # pic_pala = L_new-L_old
+    # print(f"Delta: {Delta}, A pico y pala: {L_new-L_old}, error {np.abs(Delta-pic_pala)}")
+
     P = gg*pp
 
 
@@ -251,9 +268,9 @@ def tree_slicing_step(model,verbose=False):
         if verbose:
             print(f"\t-- Slicing accepted")
         model.T = T_new
-        model.log_likelihood = L_new
-        L_old = L_new
-        model.get_newick()
+        model.log_likelihood += Delta
+        # L_old = L_new
+        # model.get_newick()
         model.N_candidates_to_chain_old = model.N_candidates_to_chain
 
     else:
@@ -262,9 +279,9 @@ def tree_slicing_step(model,verbose=False):
             if verbose:
                 print(f"\t-- Slicing accepted")
             model.T = T_new
-            model.log_likelihood = L_new
-            L_old = L_new
-            model.get_newick()
+            model.log_likelihood += Delta
+            # L_old = L_new
+            # model.get_newick()
             model.N_candidates_to_chain_old = model.N_candidates_to_chain
         else:
             accepted = False
