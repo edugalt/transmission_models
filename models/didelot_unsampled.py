@@ -787,7 +787,7 @@ class didelot_unsampled():
             Host whose infection time will be changed. If None, a host is randomly selected.
         metHast: bool, default=True
             If True, the Metropolis Hastings algorithm is used to accept or reject the change.
-        t_inf_new: float, default=None
+        Dt_new: float, default=None
             New infection time for the host. If None, a new time is sampled.
         verbose: bool, default=False
             If True, prints the results of the step.
@@ -833,12 +833,13 @@ class didelot_unsampled():
 
                 if verbose:
                     print(
-                        f"Dt_new: {Dt_new}, Dt_old: {Dt_old}, gg: {gg}, pp: {1/pp}, P: {1}, selected_host: {selected_host}")
+                        f"Dt_new: {Dt_new}, Dt_old: {Dt_old}, gg: {gg}, pp: {1/gg}, P: {1}, selected_host: {selected_host}")
                 if metHast:
                     selected_host.t_inf = parent.t_inf + Dt_new
                     t_inf_new = selected_host.t_inf
                     # self.log_likelihood = self.get_log_likelihood_transmission()
                     L_new = self.log_likelihood
+                    return Dt_new, gg, 1 / gg, 1, selected_host, True
                 # # if selected_host.sampled:
                 # DL = (self.k_inf - 1) * np.log(Dt_new / Dt_old) - ((Dt_new - Dt_old) / self.theta_inf)
                 # for h in self.successors(selected_host):
@@ -857,7 +858,6 @@ class didelot_unsampled():
                 #     f"A saco {L_new - L_old}, solo cambios {DL}, diff {L_new - L_old - DL}, similar? {np.abs(L_new - L_old - DL) < 1e-9},sampled? {selected_host.sampled}")
                 #
                 # print(f"\t--> pp={np.exp(L_new - L_old)}, gg={gg}, P={gg * np.exp(L_new - L_old)}")
-                return Dt_new, gg, 1 / gg, 1, selected_host, True
             else:
                 #No leaf
                 if self.out_degree(selected_host) > 0:
@@ -885,16 +885,18 @@ class didelot_unsampled():
         t_inf_new = selected_host.t_inf
         # L_new = self.get_log_likelihood_transmission()
 
-        DL = (self.k_inf-1)*np.log(Dt_new/Dt_old) - ((Dt_new-Dt_old)/self.theta_inf)
+        DL = utils.Delta_log_gamma(Dt_old,Dt_new,self.k_inf,self.theta_inf)
         for h in self.successors(selected_host):
             Dt_h_old = h.t_inf-t_inf_old
             Dt_h_new = h.t_inf-t_inf_new
-            DL += (self.k_inf-1)*np.log(Dt_h_new/Dt_h_old) - ((Dt_h_new-Dt_h_old)/self.theta_inf)
+            # DL += (self.k_inf-1)*np.log(Dt_h_new/Dt_h_old) - ((Dt_h_new-Dt_h_old)/self.theta_inf)
+            DL += utils.Delta_log_gamma(Dt_h_old,Dt_h_new,self.k_inf,self.theta_inf)
 
         if selected_host.sampled:
             Dt_samp_old = selected_host.t_sample-t_inf_old
             Dt_samp_new = selected_host.t_sample-t_inf_new
-            DL += (self.k_samp-1)*np.log(Dt_samp_new/Dt_samp_old) - ((Dt_samp_new-Dt_samp_old)/self.theta_samp)
+            # DL += (self.k_samp-1)*np.log(Dt_samp_new/Dt_samp_old) - ((Dt_samp_new-Dt_samp_old)/self.theta_samp)
+            DL += utils.Delta_log_gamma(Dt_samp_old,Dt_samp_new,self.k_samp,self.theta_samp)
             # DL += (self.k_inf - 1) * np.log(t_inf_new / Dt_samp_old) - ((t_inf_new - Dt_samp_old) / self.theta_inf)
 
 
