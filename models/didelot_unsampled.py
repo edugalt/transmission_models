@@ -80,6 +80,10 @@ class didelot_unsampled():
         self.N_candidates_to_chain = 0
         self.N_candidates_to_chain_old = 0
         self.candidates_to_chain = []
+
+
+        self.Delta_crit = 4/((1-self.pi)*self.pmf_offspring(1)*((self.theta_inf)**(-self.k_inf))/(GAMMA(self.k_inf)))**(1/(self.k_inf-1))
+
         # def generate_networks(self):
 
     def samp_t_inf_between(self, h1, h2):
