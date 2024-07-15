@@ -308,6 +308,7 @@ class didelot_unsampled():
                 for h in hosts:
                     for j in T.successors(h):
                         L*=self.pdf_infection(j.t_inf-h.t_inf)
+                        # print(f"=======>{str(h)=},{str(j)=}\t{j.t_inf-h.t_inf=}\t{self.pdf_infection(j.t_inf-h.t_inf)=}")
             else:
                 for j in T.successors(hosts):
                     L*=self.pdf_infection(j.t_inf-hosts.t_inf)
@@ -337,16 +338,37 @@ class didelot_unsampled():
             Delta_log_likelihood: float
                 Change in the log likelihood of the infection model
         """
-        L_end = self.get_infection_model_likelihood(hosts, T_end)
-
         if T_ini is None:
             T_ini = self.T
+
+        # Delta = 0
+        # for h in hosts:
+        #     if h not in T_end:
+        #         print(f"No T_end", h)
+        #         for i in T_ini.successors(h):
+        #             Delta -= np.log(self.pdf_infection(i.t_inf - h.t_inf))
+        #     elif h not in T_ini:
+        #         print(f"No T_ini", h)
+        #         for i in T_end.successors(h):
+        #             Delta += np.log(self.pdf_infection(i.t_inf - h.t_inf))
+        #     else:
+        #         for j in T_end.successors(h):
+        #             for i in T_ini.successors(h):
+        #                 Dt_ini = i.t_inf - h.t_inf
+        #                 Dt_end = j.t_inf - h.t_inf
+        #                 # print(f"{Dt_ini=}\t{Dt_end=}")
+        #                 Delta += utils.Delta_log_gamma(Dt_ini, Dt_end, self.k_inf, self.theta_inf)
+        #                 print(f"{Dt_ini=}\t{Dt_end=}\t{Delta=}")
+
+        L_end = self.get_infection_model_likelihood(hosts, T_end)
+
 
         L_ini = self.get_infection_model_likelihood(hosts, T_ini)
 
         # Delta2 = (self.k_inf-1)*np.log(h.t_inf/)
         # print()
 
+        # print(f"{Delta=},{np.log(L_end / L_ini)=}")
         return np.log(L_end / L_ini)
 
 
@@ -379,13 +401,13 @@ class didelot_unsampled():
 
         return np.log(Pi)
 
-    def Delta_log_likelihood_host(self, host, T_end, T_ini=None):
+    def Delta_log_likelihood_host(self, hosts, T_end, T_ini=None):
         """
         Computes the change in the log likelihood of a host given two transmissions trees: from T_ini to T_end
 
         Parameters:
         -----------
-            host: host object
+            hosts: list of host objects
             T_end: DiGraph object
                 Transmission tree at the end of the step
             T_ini: DiGraph object
@@ -397,12 +419,18 @@ class didelot_unsampled():
             Delta_log_likelihood: float
                 Change in the log likelihood of the host
         """
-        L_end = self.log_likelihood_host(host, T_end)
+        print(hosts)
+        L_end = self.log_likelihood_host(hosts, T_end)
+
+        Delta = self.Delta_log_infection(hosts, T_end, T_ini) + self.Delta_log_offspring(hosts, T_end, T_ini) + self.Delta_log_sampling(hosts, T_end, T_ini)
 
         if T_ini is None:
             T_ini = self.T
 
-        L_ini = self.log_likelihood_host(host, T_ini)
+        L_ini = self.log_likelihood_host(hosts, T_ini)
+
+        print("----", hosts, L_end - L_ini, Delta)
+
         return L_end - L_ini
 
     def log_likelihood_hosts_list(self, hosts, T):
@@ -1333,10 +1361,10 @@ class didelot_unsampled():
 
         if added:
             affected_hosts = [list(T_new.predecessors(unsampled))[0]] + [h for h in T_new.successors(unsampled)]
-            Delta_LL = self.Delta_log_likelihood_host( affected_hosts,T_new)+self.log_likelihood_hosts_list([unsampled],T_new)
+            Delta_LL = self.Delta_log_likelihood_host(affected_hosts, T_new) + self.log_likelihood_hosts_list([unsampled], T_new)
         else:
             affected_hosts = [self.parent(unsampled)]+[h for h in self.successors(unsampled)]
-            Delta_LL = self.Delta_log_likelihood_host(affected_hosts,T_new)-self.log_likelihood_host(unsampled)
+            Delta_LL = self.Delta_log_likelihood_host(affected_hosts, T_new) - self.log_likelihood_host(unsampled)
 
         # L_new = self.log_likelihood_transmission_tree(T_new)
 
@@ -1384,7 +1412,7 @@ class didelot_unsampled():
                     accepted = False
 
 
-        return accepted
+        return gg,P,added,accepted
 
 
     def MCMC_step(self, N_steps, verbose=False):
