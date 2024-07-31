@@ -419,17 +419,17 @@ class didelot_unsampled():
             Delta_log_likelihood: float
                 Change in the log likelihood of the host
         """
-        print(hosts)
+        # print(hosts)
         L_end = self.log_likelihood_host(hosts, T_end)
 
-        Delta = self.Delta_log_infection(hosts, T_end, T_ini) + self.Delta_log_offspring(hosts, T_end, T_ini) + self.Delta_log_sampling(hosts, T_end, T_ini)
+        # Delta = self.Delta_log_infection(hosts, T_end, T_ini) + self.Delta_log_offspring(hosts, T_end, T_ini) + self.Delta_log_sampling(hosts, T_end, T_ini)
 
         if T_ini is None:
             T_ini = self.T
 
         L_ini = self.log_likelihood_host(hosts, T_ini)
 
-        print("----", hosts, L_end - L_ini, Delta)
+        # print("----", hosts, L_end - L_ini, Delta)
 
         return L_end - L_ini
 
