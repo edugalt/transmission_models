@@ -860,7 +860,7 @@ class didelot_unsampled():
                 except RuntimeWarning:
                     print(Dt_old, Dt_new, self.pdf_infection(Dt_new), self.k_inf, self.theta_inf, self.out_degree(selected_host), t_min, self.dist_infection.cdf(t_min))
                     if Dt_old<0:
-                        print("NEGATIVE!!!",selected_host.t_inf , parent.t_inf)
+                        print("NEGATIVE!!!",selected_host.t_inf, parent.t_inf)
                     raise RuntimeWarning
 
                 if verbose:
@@ -869,10 +869,12 @@ class didelot_unsampled():
                         f"Dt_new: {Dt_new}, Dt_old: {Dt_old}, gg: {gg}, pp: {1/gg}, P: {1}, selected_host: {selected_host}")
                 if metHast:
                     selected_host.t_inf = parent.t_inf + Dt_new
-                    t_inf_new = selected_host.t_inf
-                    # self.log_likelihood = self.get_log_likelihood_transmission()
-                    L_new = self.log_likelihood
-                    return Dt_new, gg, 1 / gg, 1, selected_host, True
+
+                    DL = -np.log(gg)
+
+                    self.log_likelihood += DL
+
+                    return Dt_new, gg, 1 / gg, 1, selected_host, True, DL
                 # # if selected_host.sampled:
                 # DL = (self.k_inf - 1) * np.log(Dt_new / Dt_old) - ((Dt_new - Dt_old) / self.theta_inf)
                 # for h in self.successors(selected_host):
@@ -958,7 +960,7 @@ class didelot_unsampled():
                     # print("rejected",itt)
                 else:
                     accepted = False
-        return Dt_new, gg, pp, P, selected_host, accepted
+        return Dt_new, gg, pp, P, selected_host, accepted, DL
 
     def add_unsampled_with_times(self, selected_host=None, P_rewiring=0.5, P_off=0.5, verbose=False,
                                  only_geometrical=False, detailed_probs=False):
