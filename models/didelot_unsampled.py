@@ -446,6 +446,15 @@ class didelot_unsampled():
             log_likelihood += self.log_likelihood_host(h, T)
         return log_likelihood
 
+    def show_log_likelihoods(self,hosts=None,T=None):
+        if T is None:
+            T = self.T
+        if hosts is None:
+            hosts = T
+        print("Sampling model:",np.log(self.get_sampling_model_likelihood(hosts,T)))
+        print("Offspring model:",np.log(self.get_offspring_model_likelihood(hosts,T)))
+        print("Infection model:",np.log(self.get_infection_model_likelihood(hosts,T)))
+
     def log_likelihood_transmission_tree_old(self, T):
         log_likelihood = 0
         Pi = 1
@@ -824,7 +833,7 @@ class didelot_unsampled():
         verbose: bool, default=False
             If True, prints the results of the step.
         """
-        # L_old = self.get_log_likelihood_transmission()
+        L_old = self.log_likelihood
         # rejects = 0
 
         ##################################################################
@@ -866,15 +875,33 @@ class didelot_unsampled():
                 if verbose:
                     print("An unsampled leaf has been shifted")
                     print(
-                        f"Dt_new: {Dt_new}, Dt_old: {Dt_old}, gg: {gg}, pp: {1/gg}, P: {1}, selected_host: {selected_host}")
+                        f"\tDt_new: {Dt_new}, Dt_old: {Dt_old}, gg: {gg}, pp: {1/gg}, P: {1}, selected_host: {selected_host}")
                 if metHast:
                     selected_host.t_inf = parent.t_inf + Dt_new
+                    L_new = self.log_likelihood_transmission_tree(self.T)
+                    selected_host.t_inf = parent.t_inf + Dt_old
 
-                    DL = -np.log(gg)
+                    # DL = -np.log(gg)
+                    pp = np.exp(L_new-L_old)
+                    P = gg*pp
 
-                    self.log_likelihood += DL
+                    if P > 1:
+                        selected_host.t_inf = parent.t_inf + Dt_new
+                        self.log_likelihood = L_new
+                        accepted = True
+                    else:
+                        if random() < P:
+                            selected_host.t_inf = parent.t_inf + Dt_new
+                            self.log_likelihood = L_new
+                            accepted = True
+                        else:
+                            accepted = False
 
-                    return Dt_new, gg, 1 / gg, 1, selected_host, True, DL
+                    # self.log_likelihood += DL
+
+                    return Dt_new, gg, pp, P, selected_host, accepted, L_new-L_old
+
+
                 # # if selected_host.sampled:
                 # DL = (self.k_inf - 1) * np.log(Dt_new / Dt_old) - ((Dt_new - Dt_old) / self.theta_inf)
                 # for h in self.successors(selected_host):
@@ -896,12 +923,16 @@ class didelot_unsampled():
             else:
                 #No leaf
                 if self.out_degree(selected_host) > 0:
+                    if verbose:
+                        print("A no leaf has been shifted")
                     t_min = min(self.T.successors(selected_host), key=lambda j: j.t_inf).t_inf-parent.t_inf
                     #No leaf and sampled
                     if selected_host.sampled:
                         t_min = min(selected_host.t_sample - selected_host.t_inf,t_min)
                 else:
                     #Leaf and sampled
+                    if verbose:
+                        print("A sampled leaf has been shifted")
                     t_min = selected_host.t_sample-selected_host.t_inf
                 Dt_new = self.dist_infection.ppf(random() * self.dist_infection.cdf(t_min))
 
@@ -934,12 +965,15 @@ class didelot_unsampled():
             DL += utils.Delta_log_gamma(Dt_samp_old,Dt_samp_new,self.k_samp,self.theta_samp)
             # DL += (self.k_inf - 1) * np.log(t_inf_new / Dt_samp_old) - ((t_inf_new - Dt_samp_old) / self.theta_inf)
 
+        selected_host.t_inf = parent.t_inf + Dt_new
+        L_new = self.log_likelihood_transmission_tree(self.T)
+        selected_host.t_inf = parent.t_inf + Dt_old
 
         # print(f"A saco {L_new-L_old}, solo cambios {DL}, diff {L_new-L_old-DL}, similar? {np.abs(L_new-L_old-DL)<1e-9},sampled? {selected_host.sampled}")
-        pp = np.exp(DL)
+        pp = np.exp(L_new-L_old)
         P = gg * pp
         if verbose:
-            print(f"Dt_new: {Dt_new}, Dt_old: {Dt_old}, gg: {gg}, pp: {pp}, P: {P}, selected_host: {selected_host}")
+            print(f"\tDt_new: {Dt_new}, Dt_old: {Dt_old}, gg: {gg}, pp: {pp}, P: {P}, selected_host: {selected_host} , L_new: {L_new}, L_old: {L_old}, DL: {DL} vs {L_new-L_old}")
         # pp2 = likelihood_ratio(self,selected_host,t_inf_old,selected_host.t_sample-Dt_new,log=False)
         # L_old = self.log_likelihood_transmission()
 
@@ -960,7 +994,7 @@ class didelot_unsampled():
                     # print("rejected",itt)
                 else:
                     accepted = False
-        return Dt_new, gg, pp, P, selected_host, accepted, DL
+        return Dt_new, gg, pp, P, selected_host, accepted, L_new-L_old
 
     def add_unsampled_with_times(self, selected_host=None, P_rewiring=0.5, P_off=0.5, verbose=False,
                                  only_geometrical=False, detailed_probs=False):
@@ -1415,7 +1449,7 @@ class didelot_unsampled():
                     accepted = False
 
 
-        return gg,P,added,accepted
+        return gg,P,added,accepted, Delta_LL
 
 
     def MCMC_step(self, N_steps, verbose=False):
