@@ -864,6 +864,7 @@ class didelot_unsampled():
                     raise RuntimeWarning
 
                 if verbose:
+                    print("An unsampled leaf has been shifted")
                     print(
                         f"Dt_new: {Dt_new}, Dt_old: {Dt_old}, gg: {gg}, pp: {1/gg}, P: {1}, selected_host: {selected_host}")
                 if metHast:
