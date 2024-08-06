@@ -248,7 +248,7 @@ def tree_slicing_step(model, verbose=False):
         if verbose:
             print(f"Impossible infection proposed!!: From {h_b} to {selected_host}")
         model.N_candidates_to_chain = model.N_candidates_to_chain_old
-        return T_new, gg, 0, 0, selected_host, False,0
+        return T_new, gg, 0, 0, selected_host, False
 
 
     if to_chain:
@@ -293,4 +293,4 @@ def tree_slicing_step(model, verbose=False):
             if verbose:
                 print(f"\t-- Slicing rejected")
             model.N_candidates_to_chain = model.N_candidates_to_chain_old
-    return T_new, gg, pp, P, selected_host, accepted, Delta
+    return T_new, gg, pp, P, selected_host, accepted
