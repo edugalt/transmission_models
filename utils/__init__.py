@@ -48,6 +48,61 @@ def random_combination(iterable, r=1):
     n = len(pool)
     indices = sorted(sample(range(n), r))
     return tuple(pool[i] for i in indices)
+
+def search_firsts_sampled_siblings(host, T):
+    """
+    Search the firsts sampled siblings of a host in the transmission tree.
+
+    Parameters:
+    -----------
+        host: Host
+            The host to search the siblings from
+        T: nx.DiGraph
+            The transmission tree where the hot belongs to.
+    Returns:
+    --------
+        sampled_hosts: list of Hosts
+            The list of the firsts sampled siblings of the host
+
+    """
+    sampled_hosts = []
+    for h in T.successors(host):
+        if h.sampled:
+            sampled_hosts.append(h)
+        else:
+            sampled_hosts += search_firsts_sampled_siblings(h, T)
+
+    return sampled_hosts
+
+
+def search_first_sampled_parent(host, T, root):
+    """
+    Search the first sampled parent of a host in the transmission tree.
+
+    Parameters:
+    -----------
+        host: Host
+            The host to search the parent from. If the host is the root of the tree, it returns None
+        T: nx.DiGraph
+            The transmission tree where the hot belongs to.
+        root: Host
+            The root of the transmission tree
+    Returns:
+    --------
+        parent: Host
+            The first sampled parent of the host
+    """
+
+    if host == root:
+        return None
+
+    parent = next(T.predecessors(host))
+
+    if not parent.sampled:
+        return search_first_sampled_parent(parent, T, root)
+    else:
+        return parent
+
 def Delta_log_gamma(Dt_ini,Dt_end,k,theta):
     """
     Compute the log likelihood of the gamma distribution for the time between two events.

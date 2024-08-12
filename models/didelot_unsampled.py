@@ -12,6 +12,9 @@ from scipy.special import gamma as GAMMA
 import networkx as nx
 from networkx.exception import NetworkXError
 
+from transmission_models.priors import genetic_prior_tree
+
+
 # from ..utils import tree_to_newick
 
 
@@ -80,6 +83,10 @@ class didelot_unsampled():
         self.N_candidates_to_chain = 0
         self.N_candidates_to_chain_old = 0
         self.candidates_to_chain = []
+
+
+        self.genetic_log_prior = None
+        self.genetic_prior = None
 
 
         self.Delta_crit = 4/((1-self.pi)*self.pmf_offspring(1)*((self.theta_inf)**(-self.k_inf))/(GAMMA(self.k_inf)))**(1/(self.k_inf-1))
@@ -528,6 +535,25 @@ class didelot_unsampled():
         return self.log_likelihood
 
 
+    def add_genetic_prior(self,mu_gen, gen_dist):
+        """
+        Adds a genetic prior to the model that computes the likelihood that two sampled hosts has a relationship given
+        the genetic distance of the virus of the hosts.
+        Two nodes are considered that has a relationship if the only hosts that are on they are connected through
+        unsampled hosts.
+
+        Parameters
+        ----------
+        mu_gen: float
+            Mutation rate
+        gen_dist: np.array
+            Genetic distance matrix of the virus of the hosts. The index has to be identical to the index of the hosts.
+
+        """
+
+        self.genetic_prior = genetic_prior_tree(self, mu_gen, gen_dist)
+
+
     def create_transmision_phylogeny_nets(self, N, mu, P_mut):
         """
             N: Number of hosts
@@ -854,6 +880,8 @@ class didelot_unsampled():
         #######                    INFECTION TIME                   ######
         ##################################################################
         ##################################################################
+
+
         if selected_host is None:
             while True:
                 selected_host = sample(list(self.T.nodes()), 1)[0]
@@ -890,15 +918,20 @@ class didelot_unsampled():
                     print(
                         f"\tDt_new: {Dt_new}, Dt_old: {Dt_old}, gg: {gg}, pp: {1/gg}, P: {1}, selected_host: {selected_host}")
                 if metHast:
-                    selected_host.t_inf = parent.t_inf + Dt_new
-
 
                     DL = np.log(1/gg)
-
-                    selected_host.t_inf = parent.t_inf + Dt_old
-
-                    # DL = -np.log(gg)
                     pp = np.exp(DL)
+
+                    #Genetic prior
+                    if self.genetic_prior is not None:
+                        LP_old = self.genetic_log_prior
+                        selected_host.t_inf = parent.t_inf + Dt_new
+                        LP_new = self.genetic_prior.log_prior_T(self.T)
+                        selected_host.t_inf = parent.t_inf + Dt_old
+                        DL_prior = LP_new-LP_old
+
+                        pp *= np.exp(DL_prior)
+
                     P = gg*pp
 
                     if P > 1:
@@ -987,6 +1020,18 @@ class didelot_unsampled():
 
         # print(f"A saco {L_new-L_old}, solo cambios {DL}, diff {L_new-L_old-DL}, similar? {np.abs(L_new-L_old-DL)<1e-9},sampled? {selected_host.sampled}")
         pp = np.exp(DL)
+
+        # Genetic prior
+        if self.genetic_prior is not None:
+            LP_old = self.genetic_log_prior
+            selected_host.t_inf = parent.t_inf + Dt_new
+            LP_new = self.genetic_prior.log_prior_T(self.T)
+            selected_host.t_inf = parent.t_inf + Dt_old
+            DL_prior = LP_new - LP_old
+
+            pp *= np.exp(DL_prior)
+
+
         P = gg * pp
         if verbose:
             print(f"\tDt_new: {Dt_new}, Dt_old: {Dt_old}, gg: {gg}, pp: {pp}, P: {P}, selected_host: {selected_host} , L_new: {L_new}, L_old: {L_old}, DL: {DL} vs {L_new-L_old}")
@@ -1000,6 +1045,9 @@ class didelot_unsampled():
                 accepted = True
                 selected_host.t_inf = parent.t_inf + Dt_new
                 self.log_likelihood += DL
+
+                if self.genetic_prior is not None:
+                    self.genetic_log_prior = LP_new
             else:
                 rnd = random()
                 # print(P,algo)
@@ -1007,6 +1055,9 @@ class didelot_unsampled():
                     accepted = True
                     selected_host.t_inf = parent.t_inf + Dt_new
                     self.log_likelihood += DL
+
+                    if self.genetic_prior is not None:
+                        self.genetic_log_prior = LP_new
                     # print("rejected",itt)
                 else:
                     accepted = False

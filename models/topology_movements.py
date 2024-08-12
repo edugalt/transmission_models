@@ -262,6 +262,13 @@ def tree_slicing_step(model, verbose=False):
 
     # L_new = model.log_likelihood_transmission_tree(T_new)
     pp = np.exp(Delta)
+
+    if model.genetic_prior is not None:
+        LP_new = model.genetic_prior.log_prior_T(T_new)
+        DL_prior = LP_new - model.genetic_log_prior
+        pp *= np.exp(DL_prior)
+
+
     # pic_pala = L_new-L_old
     # print(f"Delta: {Delta}, A pico y pala: {L_new-L_old}, error {np.abs(Delta-pic_pala)}")
 
@@ -277,6 +284,8 @@ def tree_slicing_step(model, verbose=False):
         # L_old = L_new
         # model.get_newick()
         model.N_candidates_to_chain_old = model.N_candidates_to_chain
+        if model.genetic_prior is not None:
+            model.genetic_log_prior = LP_new
 
     else:
         if random() < P:
@@ -288,9 +297,13 @@ def tree_slicing_step(model, verbose=False):
             # L_old = L_new
             # model.get_newick()
             model.N_candidates_to_chain_old = model.N_candidates_to_chain
+            if model.genetic_prior is not None:
+                model.genetic_log_prior = LP_new
         else:
             accepted = False
             if verbose:
                 print(f"\t-- Slicing rejected")
             model.N_candidates_to_chain = model.N_candidates_to_chain_old
+
+
     return T_new, gg, pp, P, selected_host, accepted
