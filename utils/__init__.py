@@ -6,7 +6,7 @@ import scipy.special as sc
 import scipy.stats as st
 
 import numpy as np
-
+import json
 
 def tree_to_newick(g,lengths=True, root=None):
     if root is None:
@@ -290,3 +290,59 @@ def plot_transmision_network(T,nodes_labels=False,pos = None, highlighted_nodes 
         return imageio.imread('temp.png')
     if show:
         plt.show()
+
+
+def tree_to_dict(model, h):
+    # print("host",h)
+    dict_tree = {"name": str(h),
+                 "index": int(h),
+                 "Infection time": h.t_inf,
+                 "Sampled": h.sampled,
+                 }
+    if h.sampled:
+        try:
+            dict_tree["Sampling time"] = h.t_sample
+        except AttributeError:
+            print("error", str(h), int(h), h.sampled)
+    if model.out_degree(h) > 0:
+        dict_tree["children"] = [tree_to_dict(model, h2) for h2 in model.T[h]]
+
+    return dict_tree
+
+def cast_types(value, types_map):
+    """
+    recurse into value and cast any np.int64 to int
+
+    fix: TypeError: Object of type int64 is not JSON serializable
+
+    import numpy as np
+    import json
+    data = [np.int64(123)]
+    data = cast_types(data, [
+        (np.int64, int),
+        (np.float64, float),
+    ])
+    data_json = json.dumps(data)
+    data_json == "[123]"
+
+    https://stackoverflow.com/a/75552723/10440128
+    """
+    if isinstance(value, dict):
+        # cast types of dict keys and values
+        return {cast_types(k, types_map): cast_types(v, types_map) for k, v in value.items()}
+    if isinstance(value, list):
+        # cast types of list values
+        return [cast_types(v, types_map) for v in value]
+    for f, t in types_map:
+        if isinstance(value, f):
+            return t(value) # cast type of value
+    return value # keep type of value
+
+def tree_to_json(model, filename):
+    dict_tree = tree_to_dict(model,model.root_host)
+    # Convert and write JSON object to file
+    with open(filename, "w") as outfile:
+        json.dump(cast_types(dict_tree, [
+            (np.int64, int),
+            (np.float64, float),
+        ]), outfile)

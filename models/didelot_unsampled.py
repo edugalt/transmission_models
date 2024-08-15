@@ -626,6 +626,12 @@ class didelot_unsampled():
 
         return self.newick
 
+    def save_json(self,filename):
+        """
+        Saves the transmission tree in a json file.
+        """
+        utils.tree_to_json(self,filename)
+
     def infection_time_from_sampling_step(self, selected_host=None, metHast=True, verbose=False):
         """
         Method to change the infection time of a host amd then accept the change using the Metropolis Hastings algorithm.
