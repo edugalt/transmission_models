@@ -21,8 +21,10 @@ class host:
     - index (int): The index of the host.
     - sampled (bool): Indicates whether the host has been sampled or not.
     - genetic_data (list): The genetic data of the host.
+    - dict_attributes (dict): A dictionary to store additional attributes.
     - t_inf (int): Time of infection.
     - t_sample (optional): The time the host was sampled.
+
 
     Methods:
     - t_inf (property): Getter and setter for the time of infection attribute.
@@ -64,6 +66,7 @@ class host:
         self._t_inf = t_inf
         self.index = int(index)
         self.id = id
+        self.dict_attributes = {}
 
     @property
     def t_inf(self):

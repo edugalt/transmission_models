@@ -299,6 +299,9 @@ def tree_to_dict(model, h):
                  "Infection time": h.t_inf,
                  "Sampled": h.sampled,
                  }
+    # print(h.dict_attributes,h.dict_attributes!={})
+    if h.dict_attributes != {}:
+        dict_tree["Attributes"] = h.dict_attributes
     if h.sampled:
         try:
             dict_tree["Sampling time"] = h.t_sample
@@ -340,9 +343,16 @@ def cast_types(value, types_map):
 
 def tree_to_json(model, filename):
     dict_tree = tree_to_dict(model,model.root_host)
+    dict_model = {"log_likelihood": model.log_likelihood,
+                 "tree": dict_tree}
+
+    # Genetic prior
+    if model.genetic_prior is not None:
+        dict_model["genetic_prior"] = model.genetic_log_prior
+
     # Convert and write JSON object to file
     with open(filename, "w") as outfile:
-        json.dump(cast_types(dict_tree, [
+        json.dump(cast_types(dict_model, [
             (np.int64, int),
             (np.float64, float),
         ]), outfile)
