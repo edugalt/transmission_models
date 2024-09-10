@@ -1,6 +1,7 @@
 # from transmission_models.models import *
 from transmission_models.models.didelot_unsampled import *
 # from transmission_models.utils import *
+from transmission_models import host
 
 import scipy.special as sc
 import scipy.stats as st
@@ -294,11 +295,15 @@ def plot_transmision_network(T,nodes_labels=False,pos = None, highlighted_nodes 
 
 def tree_to_dict(model, h):
     # print("host",h)
-    dict_tree = {"name": str(h),
-                 "index": int(h),
-                 "Infection time": h.t_inf,
-                 "Sampled": h.sampled,
-                 }
+    try:
+        dict_tree = {"name": str(h),
+                     "index": int(h),
+                     "Infection time": h.t_inf,
+                     "Sampled": h.sampled,
+                     }
+    except TypeError as e:
+        print("error",h, str(h))
+        raise e
     # print(h.dict_attributes,h.dict_attributes!={})
     if h.dict_attributes != {}:
         dict_tree["Attributes"] = h.dict_attributes
@@ -307,6 +312,10 @@ def tree_to_dict(model, h):
             dict_tree["Sampling time"] = h.t_sample
         except AttributeError:
             print("error", str(h), int(h), h.sampled)
+    if h==model.root_host:
+        dict_tree["root"] = True
+    else:
+        dict_tree["root"] = False
     if model.out_degree(h) > 0:
         dict_tree["children"] = [tree_to_dict(model, h2) for h2 in model.T[h]]
 
@@ -350,9 +359,70 @@ def tree_to_json(model, filename):
     if model.genetic_prior is not None:
         dict_model["genetic_prior"] = model.genetic_log_prior
 
+    dict_model["parameters"] = {"sampling_params":{},
+                                "offspring_params":{},
+                                "infection_params":{}
+                                }
+
+    dict_model["parameters"]["sampling_params"]["pi"] = model.pi
+    dict_model["parameters"]["sampling_params"]["k_samp"] = model.k_samp
+    dict_model["parameters"]["sampling_params"]["theta_samp"] = model.theta_samp
+
+    dict_model["parameters"]["offspring_params"]["r"] = model.r  # rate of infection
+    dict_model["parameters"]["offspring_params"]["p_inf"] = model.p_inf  # probability of infection
+    dict_model["parameters"]["offspring_params"]["R"] = model.R  # Reproduction number
+
+    dict_model["parameters"]["infection_params"]["k_inf"] = model.k_inf #
+    dict_model["parameters"]["infection_params"]["theta_inf"] = model.theta_inf
+
+
+
     # Convert and write JSON object to file
     with open(filename, "w") as outfile:
         json.dump(cast_types(dict_model, [
             (np.int64, int),
             (np.float64, float),
         ]), outfile)
+
+
+def get_host_from_dict(dict_tree):
+    if dict_tree["Sampled"]:
+        Host = host(dict_tree["name"], dict_tree["index"], t_sample=dict_tree["Sampling time"],
+                         t_inf=dict_tree["Infection time"])
+        if "Attributes" in dict_tree:
+            for k in dict_tree["Attributes"]:
+                Host.dict_attributes[k] = dict_tree["Attributes"][k]
+    else:
+        Host = host(dict_tree["name"], dict_tree["index"], t_inf=dict_tree["Infection time"])
+    return Host
+
+
+def read_tree_dict(dict_tree, h1=None, edge_list=[]):
+    if h1 is None: h1 = get_host_from_dict(dict_tree)
+
+    if "children" in dict_tree:
+        for d2 in dict_tree["children"]:
+            h2 = get_host_from_dict(d2)
+
+            # print(h2,d2['Infection time'],h2.t_inf)
+            edge_list.append((h1, h2))
+            read_tree_dict(d2, h1=h2, edge_list=edge_list)
+
+    return edge_list
+
+def json_to_tree(filename,sampling_params = None,offspring_params = None,infection_params = None):
+    with open(filename) as json_data:
+        dict_tree = json.load(json_data)
+        json_data.close()
+
+    if sampling_params is not None:
+        sampling_params = dict_tree["parameters"]["sampling_params"]
+    if offspring_params is not None:
+        offspring_params = dict_tree["parameters"]["offspring_params"]
+    if infection_params is not None:
+        infection_params = dict_tree["parameters"]["infection_params"]
+
+    model = didelot_unsampled(sampling_params, offspring_params, infection_params)
+    model.log_likelihood = dict_tree["log_likelihood"]
+
+    return model

@@ -1,3 +1,4 @@
+import json
 from itertools import combinations
 from math import factorial
 
@@ -202,6 +203,46 @@ class didelot_unsampled():
                 self.sampling_likelihood = L
         return L
 
+    def get_sampling_model_log_likelihood(self,hosts=None,T=None, update=False):
+        """
+        Computes the likelihood of the sampling model given a list of hosts. If no list is given, the likelihood of the
+        whole transmission tree is returned.
+
+        Parameters
+        ----------
+        hosts: list of host objects
+
+        Returns
+        -------
+            L: float
+                The likelihood of the sampling model given the list of hosts
+
+        """
+        if T is None:
+            T = self.T
+        L = 0
+        if hosts is not None:
+            if isinstance(hosts,list):
+                for h in hosts:
+                    if not h.sampled:
+                        L += np.log((1-self.pi))
+                    else:
+                        L += np.log(self.pi*self.pdf_sampling(h.t_sample-h.t_inf))
+            else:
+                if not hosts.sampled:
+                    L += np.log((1-self.pi))
+                else:
+                    L += np.log(self.pi*self.pdf_sampling(hosts.t_sample-hosts.t_inf))
+        else:
+            for h in T:
+                if not h.sampled:
+                    L += np.log((1-self.pi))
+                else:
+                    L += np.log(self.pi*self.pdf_sampling(h.t_sample-h.t_inf))
+            if update:
+                self.sampling_log_likelihood = L
+        return L
+
     def Delta_log_sampling(self, hosts, T_end, T_ini=None):
         """
         Computes the change in the log likelihood of the sampling model given a list of hosts from T_ini to T_end
@@ -256,6 +297,36 @@ class didelot_unsampled():
                 L*=self.pmf_offspring(T.out_degree(h))
             if update:
                 self.offspring_likelihood = L
+        return L
+    def get_offspring_model_log_likelihood(self,hosts=None,T=None, update=False):
+        """
+        Computes the likelihood of the offspring model given a list of hosts. If no list is given, the likelihood of the
+        whole transmission tree is returned.
+
+        Parameters
+        ----------
+        hosts: list of host objects
+
+        Returns
+        -------
+            L: float
+                The likelihood of the offspring model given the list of hosts
+
+        """
+        if T is None:
+            T = self.T
+        L = 0
+        if hosts is not None:
+            if isinstance(hosts,list):
+                for h in hosts:
+                    L += self.dist_offspring.logpmf(T.out_degree(h))
+            else:
+                L += self.dist_offspring.logpmf(T.out_degree(hosts))
+        else:
+            for h in T:
+                L += self.dist_offspring.logpmf(T.out_degree(h))
+            if update:
+                self.offspring_log_likelihood = L
         return L
 
     def Delta_log_offspring(self, hosts, T_end, T_ini=None):
@@ -325,6 +396,47 @@ class didelot_unsampled():
                     L*=self.pdf_infection(j.t_inf-h.t_inf)
             if update:
                 self.infection_likelihood = L
+        return L
+    def get_infection_model_log_likelihood(self,hosts=None,T=None, update=False):
+        """
+        Computes the likelihood of the infection model given a list of hosts. If no list is given, the likelihood of the
+        whole transmission tree is returned.
+
+        Parameters
+        ----------
+            hosts: list of host objects
+
+            T: DiGraph object
+                Contagious tree which likelihood of the hosts will be computed. If it is None, the network of the model is used.
+
+            update: bool
+                If True, the likelihood of the infection model is updated in the model object.
+
+        Returns
+        -------
+            L: float
+                The likelihood of the infection model given the list of hosts
+
+
+        """
+        if T is None:
+            T = self.T
+        L = 0
+        if hosts is not None:
+            if isinstance(hosts,list):
+                for h in hosts:
+                    for j in T.successors(h):
+                        L += np.log(self.pdf_infection(j.t_inf-h.t_inf))
+                        # print(f"=======>{str(h)=},{str(j)=}\t{j.t_inf-h.t_inf=}\t{self.pdf_infection(j.t_inf-h.t_inf)=}")
+            else:
+                for j in T.successors(hosts):
+                    L += np.log(self.pdf_infection(j.t_inf-hosts.t_inf))
+        else:
+            for h in T:
+                for j in T.successors(h):
+                    L += np.log(self.pdf_infection(j.t_inf-h.t_inf))
+            if update:
+                self.infection_log_likelihood = L
         return L
 
     def Delta_log_infection(self, hosts, T_end, T_ini=None):
@@ -396,17 +508,17 @@ class didelot_unsampled():
         """
         if T is None:
             T = self.T
-        Pi = 1
+        L = 0
         # Sampling model
-        Pi *= self.get_sampling_model_likelihood(host,T)
+        L += self.get_sampling_model_log_likelihood(host, T)
 
         # Offspring model
-        Pi *= self.get_offspring_model_likelihood(host,T)
+        L += self.get_offspring_model_log_likelihood(host, T)
 
         # Infection model
-        Pi *= self.get_infection_model_likelihood(host,T)
+        L += self.get_infection_model_log_likelihood(host, T)
 
-        return np.log(Pi)
+        return L
 
     def Delta_log_likelihood_host(self, hosts, T_end, T_ini=None):
         """
@@ -458,17 +570,17 @@ class didelot_unsampled():
             T = self.T
 
         if hosts is not None:
-            LL_sampling = np.log(self.get_sampling_model_likelihood(hosts,T))
-            LL_offspring = np.log(self.get_offspring_model_likelihood(hosts,T))
-            LL_infection = np.log(self.get_infection_model_likelihood(hosts,T))
+            LL_sampling = self.get_sampling_model_log_likelihood(hosts,T)
+            LL_offspring = self.get_offspring_model_log_likelihood(hosts,T)
+            LL_infection = self.get_infection_model_log_likelihood(hosts,T)
         else:
             LL_sampling = 0
             LL_offspring = 0
             LL_infection = 0
             for h in T:
-                LL_sampling += np.log(self.get_sampling_model_likelihood(h,T))
-                LL_offspring += np.log(self.get_offspring_model_likelihood(h,T))
-                LL_infection += np.log(self.get_infection_model_likelihood(h,T))
+                LL_sampling += self.get_sampling_model_log_likelihood(h,T)
+                LL_offspring += self.get_offspring_model_log_likelihood(h,T)
+                LL_infection += self.get_infection_model_log_likelihood(h,T)
         if verbose:
             print("Sampling model:",LL_sampling)
             print("Offspring model:",LL_offspring)
@@ -512,18 +624,16 @@ class didelot_unsampled():
         self.offspring_likelihood = 1
         self.likelihood = 1
         self.log_likelihood = 0
+        self.sampling_log_likelihood = 0
+        self.infection_log_likelihood = 0
+        self.offspring_log_likelihood = 0
 
         for i,h in enumerate(self.T):
-        # for h in self.T:
-            sampling_likelihood = self.get_sampling_model_likelihood(h)
-            infection_likelihood = self.get_infection_model_likelihood(h)
-            offspring_likelihood = self.get_offspring_model_likelihood(h)
+            self.sampling_log_likelihood += self.get_sampling_model_log_likelihood(h)
+            self.infection_log_likelihood += self.get_infection_model_log_likelihood(h)
+            self.offspring_log_likelihood += self.get_offspring_model_log_likelihood(h)
 
-            self.sampling_log_likelihood += np.log(sampling_likelihood)
-            self.infection_log_likelihood += np.log(infection_likelihood)
-            self.offspring_log_likelihood += np.log(offspring_likelihood)
-
-            self.log_likelihood += np.log(sampling_likelihood*offspring_likelihood*infection_likelihood)
+        self.log_likelihood += self.sampling_log_likelihood + self.infection_log_likelihood + self.offspring_log_likelihood
             # print(i,h,sampling_likelihood,offspring_likelihood,infection_likelihood,self.likelihood)
 
         self.likelihood = np.exp(self.log_likelihood)
@@ -631,6 +741,37 @@ class didelot_unsampled():
         Saves the transmission tree in a json file.
         """
         utils.tree_to_json(self,filename)
+
+    @classmethod
+    def json_to_tree(cls,filename, sampling_params=None, offspring_params=None, infection_params=None):
+        edge_list = []
+        with open(filename,"r") as json_data:
+            dict_tree = json.load(json_data)
+            json_data.close()
+            # print(dict_tree.keys())
+            if sampling_params is None:
+                sampling_params = dict_tree["parameters"]["sampling_params"]
+                # print(sampling_params)
+            if offspring_params is None:
+                offspring_params = dict_tree["parameters"]["offspring_params"]
+    #             print(offspring_params)
+            if infection_params is None:
+                infection_params = dict_tree["parameters"]["infection_params"]
+    #             print(infection_params)
+
+            model = cls(sampling_params, offspring_params, infection_params)
+            model.log_likelihood = dict_tree["log_likelihood"]
+            model.T = nx.DiGraph()
+            model.root_host = utils.get_host_from_dict(dict_tree["tree"])
+            edge_list = utils.read_tree_dict(dict_tree["tree"],h1=model.root_host, edge_list=[])
+            model.T.add_edges_from(edge_list)
+
+            return model
+    # def read_from_json(cls,filename):
+    #     """
+    #     Reads a transmission tree from a json file.
+    #     """
+
 
     def infection_time_from_sampling_step(self, selected_host=None, metHast=True, verbose=False):
         """
@@ -928,6 +1069,19 @@ class didelot_unsampled():
                     DL = np.log(1/gg)
                     pp = np.exp(DL)
 
+                    # DL2 = utils.Delta_log_gamma(Dt_old, Dt_new, self.k_inf, self.theta_inf)
+
+
+                    # if selected_host.sampled:
+                    #     Dt_samp_old = selected_host.t_sample - t_inf_old
+                    #     Dt_samp_new = selected_host.t_sample - t_inf_new
+                    #     # DL += (self.k_samp-1)*np.log(Dt_samp_new/Dt_samp_old) - ((Dt_samp_new-Dt_samp_old)/self.theta_samp)
+                    #     DL2 += utils.Delta_log_gamma(Dt_samp_old, Dt_samp_new, self.k_samp, self.theta_samp)
+
+
+
+                    # print(f"----------->{DL=}\t{DL2=}")
+
                     #Genetic prior
                     if self.genetic_prior is not None:
                         LP_old = self.genetic_log_prior
@@ -944,17 +1098,29 @@ class didelot_unsampled():
                         selected_host.t_inf = parent.t_inf + Dt_new
                         self.log_likelihood += DL
                         accepted = True
+
+                        if verbose:
+                            print("Time shift accepted")
+                            print("__" * 50, "\n\n")
                     else:
                         if random() < P:
                             selected_host.t_inf = parent.t_inf + Dt_new
                             self.log_likelihood += DL
                             accepted = True
+
+                            if verbose:
+                                print("Time shift accepted")
+                                print("__" * 50, "\n\n")
                         else:
                             accepted = False
+                            DL = 0
+                            if verbose:
+                                print("Time shift rejected")
+                                print("__" * 50, "\n\n")
 
                     # self.log_likelihood += DL
 
-                    return Dt_new, gg, pp, P, selected_host, accepted
+                    return Dt_new, gg, pp, P, selected_host, accepted,DL
 
 
                 # # if selected_host.sampled:
@@ -1002,8 +1168,8 @@ class didelot_unsampled():
             raise RuntimeWarning
 
         # t_inf_old = selected_host.t_inf
-        selected_host.t_inf = parent.t_inf + Dt_new
-        t_inf_new = selected_host.t_inf
+        # selected_host.t_inf = parent.t_inf + Dt_new
+        t_inf_new = parent.t_inf + Dt_new
         # L_new = self.get_log_likelihood_transmission()
 
         DL = utils.Delta_log_gamma(Dt_old,Dt_new,self.k_inf,self.theta_inf)
@@ -1021,7 +1187,7 @@ class didelot_unsampled():
             # DL += (self.k_inf - 1) * np.log(t_inf_new / Dt_samp_old) - ((t_inf_new - Dt_samp_old) / self.theta_inf)
 
         selected_host.t_inf = parent.t_inf + Dt_new
-        # L_new = self.log_likelihood_transmission_tree(self.T)
+        L_new = self.log_likelihood_transmission_tree(self.T)
         selected_host.t_inf = parent.t_inf + Dt_old
 
         # print(f"A saco {L_new-L_old}, solo cambios {DL}, diff {L_new-L_old-DL}, similar? {np.abs(L_new-L_old-DL)<1e-9},sampled? {selected_host.sampled}")
@@ -1045,12 +1211,17 @@ class didelot_unsampled():
         # L_old = self.log_likelihood_transmission()
 
         accepted = False
+
         # Metropolis Hastings
         if metHast:
             if P > 1:
                 accepted = True
                 selected_host.t_inf = parent.t_inf + Dt_new
                 self.log_likelihood += DL
+
+                if verbose:
+                    print("Time shift accepted")
+                    print("__" * 50, "\n\n")
 
                 if self.genetic_prior is not None:
                     self.genetic_log_prior = LP_new
@@ -1061,14 +1232,22 @@ class didelot_unsampled():
                     accepted = True
                     selected_host.t_inf = parent.t_inf + Dt_new
                     self.log_likelihood += DL
+                    if verbose:
+                        print("Time shift accepted")
+                        print("__"*50,"\n\n")
 
                     if self.genetic_prior is not None:
                         self.genetic_log_prior = LP_new
                     # print("rejected",itt)
                 else:
                     accepted = False
+                    DL = 0
 
-        return Dt_new, gg, pp, P, selected_host, accepted
+                    if verbose:
+                        print("Time shift rejected")
+                        print("__"*50,"\n\n")
+
+        return Dt_new, gg, pp, P, selected_host, accepted, DL
 
     def add_unsampled_with_times(self, selected_host=None, P_rewiring=0.5, P_off=0.5, verbose=False,
                                  only_geometrical=False, detailed_probs=False):
@@ -1147,7 +1326,7 @@ class didelot_unsampled():
             if verbose:
                 print("Trying to rewire too:")
             if random() < P_off or k_selected_host == 1:
-                # The unsampled host slices to be with no childs (to offspring)
+                # The unsampled host slices to be with no children (to offspring)
                 links = [(selected_host, unsampled)]
                 to_remove = []
                 if verbose:
@@ -1173,7 +1352,6 @@ class didelot_unsampled():
                     g_go *= prob_time
 
             else:
-
                 k_unsampled = randint(1, k_selected_host - 1)
                 links = [(selected_host, unsampled), (unsampled, sibling)]
                 to_remove = [(selected_host, sibling)]
@@ -1494,10 +1672,12 @@ class didelot_unsampled():
                 if not added:
                     if verbose:
                         print(f"Removing host accepted with acceptance probability {P}")
+                        print("__" * 50, "\n\n")
                     self.unsampled_hosts.remove(unsampled)
                 else:
                     if verbose:
                         print(f"Adding host accepted with acceptance probability {P}")
+                        print("__" * 50, "\n\n")
                     self.unsampled_hosts.append(unsampled)
             else:
                 if random() < P:
@@ -1508,22 +1688,27 @@ class didelot_unsampled():
                     if not added:
                         if verbose:
                             print(f"Removing host accepted with acceptance probability {P}")
+                            print("__" * 50, "\n\n")
                         self.unsampled_hosts.remove(unsampled)
                     else:
                         if verbose:
                             print(f"Adding host accepted with acceptance probability {P}")
+                            print("__" * 50, "\n\n")
                         self.unsampled_hosts.append(unsampled)
                 else:
 
                     if verbose:
                         if added:
-                            print(f"Adding host rejected with rejection probability {1-P}")
+                            print(f"Adding host rejected with acceptance probability {P}")
+                            print("__" * 50, "\n\n")
                         else:
-                            print(f"Removing host rejected with rejection probability {1-P}")
+                            print(f"Removing host rejected with acceptance probability {P}")
+                            print("__" * 50, "\n\n")
                     accepted = False
+                    Delta_LL = 0
 
 
-        return gg,P,added,accepted
+        return T_new,gg,pp,P,added, accepted, Delta_LL
 
 
     def MCMC_step(self, N_steps, verbose=False):

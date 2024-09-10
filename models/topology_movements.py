@@ -237,18 +237,18 @@ def tree_slicing_step(model, verbose=False):
     if random() > 0.5:
         if verbose:
             print(f"Slicing to chain")
-        T_new, gg, selected_host, h_a, h_b, to_chain = tree_slicing_to_chain(model)
+        T_new, gg, selected_host, h_a, h_b, to_chain = tree_slicing_to_chain(model,verbose=verbose)
     else:
         if verbose:
             print(f"Slicing to offspring")
-        T_new, gg, selected_host, h_a, h_b, to_chain = tree_slicing_to_offspring(model)
+        T_new, gg, selected_host, h_a, h_b, to_chain = tree_slicing_to_offspring(model,verbose=verbose)
 
     # If to_chain and a link is impossible to exists, automatically reject the proposal
     if (h_b.t_inf > selected_host.t_inf) and to_chain:
         if verbose:
             print(f"Impossible infection proposed!!: From {h_b} to {selected_host}")
         model.N_candidates_to_chain = model.N_candidates_to_chain_old
-        return T_new, gg, 0, 0, selected_host, False
+        return T_new, gg, 0, 0, selected_host, False, 0
 
 
     if to_chain:
@@ -278,7 +278,8 @@ def tree_slicing_step(model, verbose=False):
     if P > 1:
         accepted = True
         if verbose:
-            print(f"\t-- Slicing accepted")
+            print(f"\t-- Slicing accepted with acceptance probability {P}")
+            print("__"*50,"\n\n")
         model.T = T_new
         model.log_likelihood += Delta
         # L_old = L_new
@@ -291,7 +292,8 @@ def tree_slicing_step(model, verbose=False):
         if random() < P:
             accepted = True
             if verbose:
-                print(f"\t-- Slicing accepted")
+                print(f"\t-- Slicing accepted with acceptance probability {P}")
+                print("__"*50,"\n\n")
             model.T = T_new
             model.log_likelihood += Delta
             # L_old = L_new
@@ -301,9 +303,11 @@ def tree_slicing_step(model, verbose=False):
                 model.genetic_log_prior = LP_new
         else:
             accepted = False
+            Delta = 0
             if verbose:
-                print(f"\t-- Slicing rejected")
+                print(f"\t-- Slicing rejected with acceptance probability {P}")
+                print("__"*50,"\n\n")
             model.N_candidates_to_chain = model.N_candidates_to_chain_old
 
 
-    return T_new, gg, pp, P, selected_host, accepted
+    return T_new, gg, pp, P, selected_host, accepted, Delta
