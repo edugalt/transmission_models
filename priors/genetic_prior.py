@@ -26,7 +26,7 @@ class genetic_prior_tree():
         return sampled_hosts
 
     @staticmethod
-    def search_first_sampled_parent(host, T, root):
+    def search_first_sampleed_parent(host, T, root):
 
         if host == root:
             return None
@@ -34,16 +34,19 @@ class genetic_prior_tree():
         parent = next(T.predecessors(host))
 
         if not parent.sampled:
-            return genetic_prior_tree.search_first_sampled_parent(parent, T, root)
+            return genetic_prior_tree.search_first_sampleed_parent(parent, T, root)
         else:
             return parent
+    @staticmethod
+    def get_mut_time_dist(hp, hs):
+        return (hs.t_sample + hp.t_sample - 2 * hp.t_inf)
 
     def prior_host(self, host, T, parent_dist=False):
         log_prior = 0
         for h2 in T[host]:
             if h2.sampled:
                 # print(f"{host}-->{h2}")
-                Dt = h2.t_inf - host.t_inf
+                Dt = h2.t_sample - host.t_sample
                 log_prior += np.log(poisson(self.mu * Dt).pmf(self.distance_matrix[int(host), int(h2)]))
                 p = poisson(self.mu * Dt).pmf(self.distance_matrix[int(host), int(h2)])
                 # print(int(h),int(h2),Dt,p,np.log(p))
@@ -51,18 +54,18 @@ class genetic_prior_tree():
                 siblings = genetic_prior_tree.search_firsts_sampled_siblings(h2, T)
                 for hs in siblings:
                     # print(f"{host}-->{hs}")
-                    Dt = hs.t_inf - host.t_inf
+                    Dt = hs.t_sample - host.t_sample
                     log_prior += np.log(poisson(self.mu * Dt).pmf(self.distance_matrix[int(host), int(hs)]))
         if parent_dist and host != self.model.root_host:
             parent = self.model.parent(host)
             if parent.sampled:
-                Dt = host.t_inf - parent.t_inf
+                Dt = host.t_sample - parent.t_sample
                 log_prior += np.log(poisson(self.mu * Dt).pmf(self.distance_matrix[int(host), int(parent)]))
             else:
-                parent = genetic_prior_tree.search_first_sampled_parent(host, T, self.model.root_host)
+                parent = genetic_prior_tree.search_first_sampleed_parent(host, T, self.model.root_host)
                 if parent is not None:
                     # print(f"{parent}-->{host}")
-                    Dt = host.t_inf - parent.t_inf
+                    Dt = host.t_sample - parent.t_sample
                     log_prior += np.log(poisson(self.mu * Dt).pmf(self.distance_matrix[int(host), int(parent)]))
 
         return log_prior
@@ -71,7 +74,7 @@ class genetic_prior_tree():
         log_prior = 0
         if not h1.sampled or not h2.sampled:
             return 0
-        Dt = h2.t_inf - h1.t_inf
+        Dt = h2.t_sample - h1.t_sample
         return np.log(poisson(self.mu * Dt).pmf(self.distance_matrix[int(h1), int(h2)]))
 
 
@@ -82,15 +85,14 @@ class genetic_prior_tree():
             for h2 in T[h]:
                 if h2.sampled:
                     # print(f"{h}-->{h2}")
-                    Dt = h2.t_inf - h.t_inf
+                    Dt = self.get_mut_time_dist(h, h2)
                     log_prior += np.log(poisson(self.mu * Dt).pmf(self.distance_matrix[int(h), int(h2)]))
-                    p = poisson(self.mu * Dt).pmf(self.distance_matrix[int(h), int(h2)])
+                    # p = poisson(self.mu * Dt).pmf(self.distance_matrix[int(h), int(h2)])
                     # print(int(h),int(h2),Dt,p,np.log(p))
                 else:
                     siblings = genetic_prior_tree.search_firsts_sampled_siblings(h2, T)
                     for hs in siblings:
-                        # print(f"{h}-->{hs}")
-                        Dt = hs.t_inf - h.t_inf
+                        Dt = self.get_mut_time_dist(h, hs)
                         log_prior += np.log(poisson(self.mu * Dt).pmf(self.distance_matrix[int(h), int(hs)]))
         return log_prior
 
@@ -106,25 +108,25 @@ class genetic_prior_tree():
         # Parent
         if host != self.model.root_host:
             # Ini
-            parent = genetic_prior_tree.search_first_sampled_parent(host, T_ini, model.root_host)
+            parent = genetic_prior_tree.search_first_sampleed_parent(host, T_ini, model.root_host)
             if parent is None:
                 D_time_ini = 0
                 D_gen_ini = 0
                 LL_ini = 0
             else:
-                D_time_ini = host.t_inf - parent.t_inf
+                D_time_ini = host.t_sample - parent.t_sample
                 D_gen_ini = self.distance_matrix[host.index, parent.index]
                 LL_ini = np.log(p.prior_dist.pmf(D_time_ini * D_gen_ini))
             # print("parent ini",D_time_ini,D_gen_ini,LL_ini)
 
             # End
-            parent = genetic_prior_tree.search_first_sampled_parent(host, T_end, model.root_host)
+            parent = genetic_prior_tree.search_first_sampleed_parent(host, T_end, model.root_host)
             if parent is None:
                 D_time_end = 0
                 D_gen_end = 0
                 LL_end = 0
             else:
-                D_time_end = host.t_inf - parent.t_inf
+                D_time_end = host.t_sample - parent.t_sample
                 D_gen_end = self.distance_matrix[host.index, parent.index]
                 LL_end = np.log(p.prior_dist.pmf(D_time_end * D_gen_end))
 
@@ -135,14 +137,14 @@ class genetic_prior_tree():
         siblings = genetic_prior_tree.search_firsts_sampled_siblings(host, T_ini)
         LL = 0
         for h in siblings:
-            D_time = h.t_inf - host.t_inf
+            D_time = h.t_sample - host.t_sample
             D_gen = self.distance_matrix[host.index, h.index]
             LL -= np.log(p.prior_dist.pmf(D_time * D_gen))
             # print("sibling ini",D_time,D_gen,LL,p.prior_dist.pmf(D_time*D_gen))
 
         siblings = genetic_prior_tree.search_firsts_sampled_siblings(host, T_end)
         for h in siblings:
-            D_time = h.t_inf - host.t_inf
+            D_time = h.t_sample - host.t_sample
             D_gen = self.distance_matrix[host.index, h.index]
             LL += np.log(p.prior_dist.pmf(D_time * D_gen))
             # print("sibling end",D_time,D_gen,LL,p.prior_dist.pmf(D_time*D_gen))
