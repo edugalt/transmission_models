@@ -264,8 +264,11 @@ def tree_slicing_step(model, verbose=False):
     pp = np.exp(Delta)
 
     if model.genetic_prior is not None:
+        LP_top_old = model.genetic_prior.correction_LL
+        LP_old = model.genetic_log_prior
         LP_new = model.genetic_prior.log_prior_T(T_new)
-        DL_prior = LP_new - model.genetic_log_prior
+        DL_prior = LP_new - LP_old
+        # print("Como salga cero, me corto los huevos", DL_prior)
         pp *= np.exp(DL_prior)
 
 
@@ -287,6 +290,12 @@ def tree_slicing_step(model, verbose=False):
         model.N_candidates_to_chain_old = model.N_candidates_to_chain
         if model.genetic_prior is not None:
             model.genetic_log_prior = LP_new
+            # print("SLICING!!!!",to_chain,model.genetic_log_prior,model.genetic_prior.log_prior_T(model.T),model.genetic_prior.log_prior_T(T_new))
+            # print("\t"*4,model.log_likelihood,model.log_likelihood_transmission_tree(model.T),model.log_likelihood_transmission_tree(T_new))
+            # print("\t"*4,"Nets attributes")
+            # print("\t"*4,len(model.T),len(T_new))
+            # print("\t"*4,len(list(model.T.edges())),len(list(T_new.edges())))
+            # print("\t"*4,len([h for h in model.T if not h.sampled]),len([h for h in T_new if not h.sampled]))
 
     else:
         if random() < P:
@@ -301,12 +310,23 @@ def tree_slicing_step(model, verbose=False):
             model.N_candidates_to_chain_old = model.N_candidates_to_chain
             if model.genetic_prior is not None:
                 model.genetic_log_prior = LP_new
+#                 print("------------->SLICING!!!!",to_chain,model.genetic_log_prior,model.genetic_prior.log_prior_T(model.T))
+#                 print("\t"*4,model.log_likelihood,model.log_likelihood_transmission_tree(model.T),model.log_likelihood_transmission_tree(T_new))
+#                 print("\t"*4,"Nets attributes")
+#                 print("\t"*4,len(model.T),len(T_new))
+#                 print("\t"*4,len(list(model.T.edges())),len(list(T_new.edges())))
+#                 print("\t"*4,len([h for h in model.T if not h.sampled]),len([h for h in T_new if not h.sampled]))
         else:
             accepted = False
             Delta = 0
             if verbose:
-                print(f"\t-- Slicing rejected with acceptance probability {P}")
+                print(f"\t-- Slicing rejected with acceptance probability {P}, {gg=}, {pp=}")
+                if model.genetic_prior is not None:
+                    print(f"\t--------- Genetic prior: {DL_prior=}, {LP_old=}, {LP_new=}")
                 print("__"*50,"\n\n")
+            if model.genetic_prior is not None:
+                model.genetic_prior.correction_LL = LP_top_old
+                model.genetic_prior.log_prior = LP_old
             model.N_candidates_to_chain = model.N_candidates_to_chain_old
 
 

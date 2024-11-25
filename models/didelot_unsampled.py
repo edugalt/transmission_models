@@ -84,6 +84,7 @@ class didelot_unsampled():
         self.N_candidates_to_chain = 0
         self.N_candidates_to_chain_old = 0
         self.candidates_to_chain = []
+        self.roots_subtrees = []
 
 
         self.genetic_log_prior = None
@@ -158,6 +159,21 @@ class didelot_unsampled():
             self.N_candidates_to_chain = len(self.candidates_to_chain)
 
         return self.N_candidates_to_chain
+
+    def get_root_subtrees(self):
+        """
+        Retrieves the root subtrees of the transmission tree.
+
+        This method searches for the first sampled siblings of the root host in the transmission tree
+        and stores them in the `roots_subtrees` attribute.
+
+        Returns:
+        --------
+        list
+            A list of root subtrees.
+        """
+        self.roots_subtrees = utils.search_firsts_sampled_siblings(self.root_host, self.T)
+        return self.roots_subtrees
 
     def get_unsampled_hosts(self):
         self.unsampled_hosts = [h for h in self.T if not h.sampled and h != self.root_host]
@@ -1084,6 +1100,7 @@ class didelot_unsampled():
 
                     #Genetic prior
                     if self.genetic_prior is not None:
+                        LP_top_old = self.genetic_prior.correction_LL
                         LP_old = self.genetic_log_prior
                         selected_host.t_inf = parent.t_inf + Dt_new
                         LP_new = self.genetic_prior.log_prior_T(self.T)
@@ -1098,6 +1115,8 @@ class didelot_unsampled():
                         selected_host.t_inf = parent.t_inf + Dt_new
                         self.log_likelihood += DL
                         accepted = True
+                        if self.genetic_prior is not None:
+                            self.genetic_log_prior = LP_new
 
                         if verbose:
                             print("Time shift accepted")
@@ -1107,15 +1126,25 @@ class didelot_unsampled():
                             selected_host.t_inf = parent.t_inf + Dt_new
                             self.log_likelihood += DL
                             accepted = True
+                            if self.genetic_prior is not None:
+                                self.genetic_log_prior = LP_new
 
                             if verbose:
                                 print("Time shift accepted")
                                 print("__" * 50, "\n\n")
                         else:
                             accepted = False
-                            DL = 0
+
+                            if self.genetic_prior is not None:
+                                self.genetic_prior.correction_LL = LP_top_old
+                                self.genetic_prior.log_prior = LP_old
                             if verbose:
                                 print("Time shift rejected")
+                                if self.genetic_prior is not None:
+                                    print(f"------>\t{DL=}\t{DL_prior=}")
+                                else:
+                                    print(f"------>\t{DL=}\t{DL_prior=}")
+
                                 print("__" * 50, "\n\n")
 
                     # self.log_likelihood += DL
@@ -1196,6 +1225,7 @@ class didelot_unsampled():
         # Genetic prior
         if self.genetic_prior is not None:
             LP_old = self.genetic_log_prior
+            LP_top_old = self.genetic_prior.correction_LL
             selected_host.t_inf = parent.t_inf + Dt_new
             LP_new = self.genetic_prior.log_prior_T(self.T)
             selected_host.t_inf = parent.t_inf + Dt_old
@@ -1206,7 +1236,11 @@ class didelot_unsampled():
 
         P = gg * pp
         if verbose:
-            print(f"\tDt_new: {Dt_new}, Dt_old: {Dt_old}, gg: {gg}, pp: {pp}, P: {P}, selected_host: {selected_host} , L_new: {L_new}, L_old: {L_old}, DL: {DL} vs {L_new-L_old}")
+            if self.genetic_prior is not None:
+                print(f"\tDt_new: {Dt_new}, Dt_old: {Dt_old}, gg: {gg}, pp: {pp}, P: {P}, selected_host: {selected_host} , L_new: {L_new}, L_old: {L_old}, DL: {DL} vs {L_new-L_old}")
+                print(f"\t\tGenetic prior:  LP_new: {LP_new}, LP_old: {LP_old}, DL_prior: {DL_prior}")
+            else:
+                print(f"\tDt_new: {Dt_new}, Dt_old: {Dt_old}, gg: {gg}, pp: {pp}, P: {P}, selected_host: {selected_host} , L_new: {L_new}, L_old: {L_old}, DL: {DL} vs {L_new-L_old}")
         # pp2 = likelihood_ratio(self,selected_host,t_inf_old,selected_host.t_sample-Dt_new,log=False)
         # L_old = self.log_likelihood_transmission()
 
@@ -1241,7 +1275,10 @@ class didelot_unsampled():
                     # print("rejected",itt)
                 else:
                     accepted = False
-                    DL = 0
+                    # DL = DL
+                    if self.genetic_prior is not None:
+                        self.genetic_prior.correction_LL = LP_top_old
+                        self.genetic_prior.log_prior = LP_old
 
                     if verbose:
                         print("Time shift rejected")
@@ -1661,6 +1698,12 @@ class didelot_unsampled():
 
         pp = np.exp(Delta_LL)
 
+        if self.genetic_prior is not None:
+            LP_top_old = self.genetic_prior.correction_LL
+            LP_new = self.genetic_prior.log_prior_T(T_new)
+            DL_prior = LP_new - self.genetic_log_prior
+            pp *= np.exp(DL_prior)
+
         P = gg * pp
 
         if metHast:
@@ -1679,11 +1722,15 @@ class didelot_unsampled():
                         print(f"Adding host accepted with acceptance probability {P}")
                         print("__" * 50, "\n\n")
                     self.unsampled_hosts.append(unsampled)
+                if self.genetic_prior is not None:
+                    self.genetic_log_prior = LP_new
             else:
                 if random() < P:
                     accepted = True
                     self.log_likelihood = self.log_likelihood+Delta_LL
                     self.T = T_new
+                    if self.genetic_prior is not None:
+                        self.genetic_log_prior = LP_new
 
                     if not added:
                         if verbose:
@@ -1696,6 +1743,9 @@ class didelot_unsampled():
                             print("__" * 50, "\n\n")
                         self.unsampled_hosts.append(unsampled)
                 else:
+                    if self.genetic_prior is not None:
+                        self.genetic_prior.correction_LL = LP_top_old
+                        self.genetic_prior.log_prior = self.genetic_log_prior
 
                     if verbose:
                         if added:
