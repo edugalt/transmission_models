@@ -1,12 +1,13 @@
 import numpy as np
 import transmission_models.utils as utils
+from duplicity.globals import select
 from transmission_models.utils import hierarchy_pos,hierarchy_pos_times,plot_transmision_network,tree_to_newick,search_firsts_sampled_siblings
 from transmission_models.models import didelot_unsampled as du
 from transmission_models.models.topology_movements import *
 
 
 class MCMC():
-    def __init__(self, model, P_rewire, P_add_remove, P_t_shift):
+    def __init__(self, model, P_rewire=1/3, P_add_remove=1/3, P_t_shift=1/3, P_add=0.5, P_rewire_add=0.5,P_add_offspring=0.5):
         """
         Initializes a new instance of the MCMC class.
 
@@ -15,48 +16,65 @@ class MCMC():
         - P_rewire (float): The probability of rewiring a transmission tree.
         - P_add_remove (float): The probability of adding or removing an unsampled host in the transmission tree.
         - P_t_shift (float): The probability of shifting the infection time of the host in the transmission tree.
+        - P_add (float): The probability of adding a new host to the transmission tree once the add/remove have been proposed.
+        - P_rewire_add (float): The probability of rewiring the new unsampled host once the add have been proposed.
+        - P_add_offspring (float): The probability that the new unsampled host is an offspring once the add and rewire have been proposed.
         """
 
         self.model = model
         self.P_rewire = P_rewire
         self.P_add_remove = P_add_remove
         self.P_t_shift = P_t_shift
+        self.P_add = P_add
+        self.P_rewire_add = P_rewire_add
+        self.P_add_offspring = P_add_offspring
 
     def MCMC_iteration(self,verbose=False):
         """
         Performs an MCMC iteration on the transmission tree model.
 
+        Parameters:
+        -----------
+            verbose: bool
+                Whether to print the progress of the MCMC iteration.
+
+        Returns:
+        - move (str): The type of move proposed.
+        - gg (float): The ratio of proposals probabilities.
+        - pp (float): The ratio of posteriors probabilities.
+        - P (float): The Acceptance probability.
+        - accepted (bool): Whether the move was accepted.
+        - DL (float): The difference in log likelihood.
+        - selected_host (Host): The host selected for the move.
+
         """
+
+        self.model.get_N_candidates_to_chain()
+        self.model.get_candidates_to_chain()
+        self.model.N_candidates_to_chain = len(self.model.candidates_to_chain)
+        self.model.N_candidates_to_chain_old = len(self.model.candidates_to_chain)
+
         # Randomly select a move
         move = np.random.choice(["rewire", "add_remove", "time_shift"], p=[self.P_rewire, self.P_add_remove, self.P_t_shift])
 
 
-        if move or len(model.T) == 2:
+        if move == "add_remove":
+            if verbose:
+                print(f"\t-- Add or remove")
 
-            ptype = "add_remove"
-
-            T_new, gg, pp, P, added, accepted, DL = model.add_remove_step()
-            pp = P / gg
-            # print(len(model.T), accepted, P)
-
-        elif rnd_type < 2 / 3:
-            ## SLICES
-            ptype = "slices"
-            T_new, gg, pp, P, selected_host, accepted, DL = tree_slicing_step(model, verbose=0)
-            # model.get_log_likelihood_transmission()
+            T_new, gg, pp, P, added, accepted, DL = self.model.add_remove_step(P_add=self.P_add,P_rewiring=self.P_rewire_add,P_off=self.P_add_offspring,verbose=verbose)
+            # pp = P / gg
+        elif move == "rewire":
+            if verbose:
+                print(f"\t-- Rewiring")
+            ## SLIDES
+            T_new, gg, pp, P, selected_host, accepted, DL = tree_slicing_step(self.model, verbose=verbose)
 
 
-        else:
-            ptype = "time_shift"
+        elif move == "time_shift":
             if verbose:
                 print(f"\t-- Time shift")
-            # selected_host = choice(model.unsampled_hosts)
-
-            len_new = len(model.T)
-            # nn = tree_to_newick(model.T, lengths=False, root=model.root_host)
             t_inf_new, gg, pp, P, selected_host, accepted, DL = self.model.infection_time_from_infection_model_step(
                 verbose=verbose)
-            # L_off = model.get_log_likelihood_transmission()
-            # print(gg,pp,P,selected_host)
-            # model.get_newick(lengths=False)
-        # print(f"{itt}\t{len(model.T)}\t{len(model.unsampled_hosts)}\t{model.log_likelihood}\t{model.genetic_log_prior}\t{np.exp(model.log_likelihood)}\t{P}\t{ptype}\t{accepted}")
+
+        return move,gg,pp,P,accepted,DL

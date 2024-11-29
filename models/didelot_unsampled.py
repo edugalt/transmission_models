@@ -1660,12 +1660,14 @@ class didelot_unsampled():
         return T_new, gg, selected_host, False
 
 
-    def add_remove_step(self, P_rewiring=0.5, P_off=0.5, metHast=True, verbose=False):
+    def add_remove_step(self, P_add=0.5, P_rewiring=0.5, P_off=0.5, metHast=True, verbose=False):
         """
         Method to propose the addition or removal of an unsampled host to the transmission tree and get the probability of the proposal.
 
         Parameters:
         -----------
+        P_add: float
+            Probability of proposing an addition of an unsampled host. Else, an unsampled host is going to be proposed for removal.
         P_rewiring: float
             Probability of rewiring the new host to another sibling host.
         P_off: float
@@ -1680,7 +1682,7 @@ class didelot_unsampled():
 
         """
 
-        if random() < 0.5:
+        if random() < P_add:
             T_new, gg, unsampled, added =  self.add_unsampled_with_times( P_rewiring=P_rewiring, P_off=P_off, verbose=verbose)
         else:
             T_new, gg, unsampled, added =  self.remove_unsampled_with_times( P_rewiring=P_rewiring, P_off=P_off, verbose=verbose)

@@ -282,7 +282,6 @@ class genetic_prior_tree():
             D_time = h.t_sample - host.t_sample
             D_gen = self.distance_matrix[host.index, h.index]
             LL += np.log(p.prior_dist.pmf(D_time * D_gen))
-            # print("sibling end",D_time,D_gen,LL,p.prior_dist.pmf(D_time*D_gen))
 
         Delta += LL
 
