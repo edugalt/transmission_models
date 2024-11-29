@@ -87,10 +87,10 @@ class didelot_unsampled():
         self.roots_subtrees = []
 
 
-        self.genetic_log_prior = None
+        self.genetic_log_prior = 0
         self.genetic_prior = None
 
-        self.same_location_log_prior = None
+        self.same_location_log_prior = 0
         self.same_location_prior = None
 
 
@@ -681,6 +681,7 @@ class didelot_unsampled():
         """
 
         self.genetic_prior = genetic_prior_tree(self, mu_gen, gen_dist)
+        self.genetic_log_prior = self.genetic_prior.log_prior_T(self.T)
 
 
     def add_same_location_prior(self,log_K, loc_dist):
@@ -700,6 +701,7 @@ class didelot_unsampled():
         """
 
         self.same_location_prior = same_location_prior_tree(self,log_K,loc_dist)
+        self.same_location_log_prior = self.same_location_prior.log_prior_T(self.T)
 
 
     def create_transmision_phylogeny_nets(self, N, mu, P_mut):
