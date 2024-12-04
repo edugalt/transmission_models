@@ -201,6 +201,7 @@ class genetic_prior_tree():
             if not h.sampled: continue
             for h2 in T[h]:
                 if h2.sampled:
+                    if np.isnan(self.distance_matrix[int(h), int(h2)]): continue
                     # print(f"{h}-->{h2}")
                     Dt = self.get_mut_time_dist(h, h2)
 
@@ -213,6 +214,8 @@ class genetic_prior_tree():
                 else:
                     siblings = genetic_prior_tree.search_firsts_sampled_siblings(h2, T)
                     for hs in siblings:
+                        if np.isnan(self.distance_matrix[int(h),int(hs)]):continue
+
                         Dt = self.get_mut_time_dist(h, hs)
                         log_L = np.log(poisson(self.mu * Dt).pmf(self.distance_matrix[int(h), int(hs)]))
                         if verbose: print(f"{h}-->{hs} (jumped) {Dt=} {log_L=}")

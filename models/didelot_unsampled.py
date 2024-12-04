@@ -13,7 +13,7 @@ from scipy.special import gamma as GAMMA
 import networkx as nx
 from networkx.exception import NetworkXError
 
-from transmission_models.priors import genetic_prior_tree
+from transmission_models.priors import genetic_prior_tree, same_location_prior_tree
 
 
 # from ..utils import tree_to_newick
@@ -87,8 +87,11 @@ class didelot_unsampled():
         self.roots_subtrees = []
 
 
-        self.genetic_log_prior = None
+        self.genetic_log_prior = 0
         self.genetic_prior = None
+
+        self.same_location_log_prior = 0
+        self.same_location_prior = None
 
 
         self.Delta_crit = 4/((1-self.pi)*self.pmf_offspring(1)*((self.theta_inf)**(-self.k_inf))/(GAMMA(self.k_inf)))**(1/(self.k_inf-1))
@@ -678,6 +681,27 @@ class didelot_unsampled():
         """
 
         self.genetic_prior = genetic_prior_tree(self, mu_gen, gen_dist)
+        self.genetic_log_prior = self.genetic_prior.log_prior_T(self.T)
+
+
+    def add_same_location_prior(self,log_K, loc_dist):
+        """
+        Adds a genetic prior to the model that computes the likelihood that two sampled hosts has a relationship given
+        the genetic distance of the virus of the hosts.
+        Two nodes are considered that has a relationship if the only hosts that are on they are connected through
+        unsampled hosts.
+
+        Parameters
+        ----------
+        log_K: float
+            Log probability of two hosts not being in the same location
+        gen_dist: np.array
+            Genetic distance matrix of the virus of the hosts. The index has to be identical to the index of the hosts.
+
+        """
+
+        self.same_location_prior = same_location_prior_tree(self,log_K,loc_dist)
+        self.same_location_log_prior = self.same_location_prior.log_prior_T(self.T)
 
 
     def create_transmision_phylogeny_nets(self, N, mu, P_mut):

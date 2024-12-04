@@ -270,6 +270,13 @@ def tree_slicing_step(model, verbose=False):
         DL_prior = LP_new - LP_old
         # print("Como salga cero, me corto los huevos", DL_prior)
         pp *= np.exp(DL_prior)
+    if model.same_location_prior is not None:
+        LP_sloc_top_old = model.same_location_prior.correction_LL
+        LP_sloc_old = model.same_location_prior.log_prior
+        LP_sloc_new = model.same_location_prior.log_prior_T(T_new)
+        DL_prior_same_location = LP_sloc_new - LP_sloc_old
+        pp *= np.exp(DL_prior_same_location)
+        # print("Como salga
 
 
     # pic_pala = L_new-L_old
@@ -283,6 +290,10 @@ def tree_slicing_step(model, verbose=False):
         if verbose:
             print(f"\t-- Slicing accepted with acceptance probability {P}")
             print("__"*50,"\n\n")
+            if model.genetic_prior is not None:
+                print(f"\t--------- Genetic prior: {DL_prior=}, {LP_old=}, {LP_new=}")
+            if model.same_location_prior is not None:
+                print(f"\t--------- Same location prior: {DL_prior_same_location=}, {LP_sloc_old=}, {LP_sloc_new=}")
         model.T = T_new
         model.log_likelihood += Delta
         # L_old = L_new
@@ -290,6 +301,8 @@ def tree_slicing_step(model, verbose=False):
         model.N_candidates_to_chain_old = model.N_candidates_to_chain
         if model.genetic_prior is not None:
             model.genetic_log_prior = LP_new
+        if model.same_location_prior is not None:
+            model.same_location_prior.log_prior = LP_sloc_new
             # print("SLICING!!!!",to_chain,model.genetic_log_prior,model.genetic_prior.log_prior_T(model.T),model.genetic_prior.log_prior_T(T_new))
             # print("\t"*4,model.log_likelihood,model.log_likelihood_transmission_tree(model.T),model.log_likelihood_transmission_tree(T_new))
             # print("\t"*4,"Nets attributes")
@@ -303,6 +316,10 @@ def tree_slicing_step(model, verbose=False):
             if verbose:
                 print(f"\t-- Slicing accepted with acceptance probability {P}")
                 print("__"*50,"\n\n")
+                if model.genetic_prior is not None:
+                    print(f"\t--------- Genetic prior: {DL_prior=}, {LP_old=}, {LP_new=}")
+                if model.same_location_prior is not None:
+                    print(f"\t--------- Same location prior: {DL_prior_same_location=}, {LP_sloc_old=}, {LP_sloc_new=}")
             model.T = T_new
             model.log_likelihood += Delta
             # L_old = L_new
@@ -310,6 +327,8 @@ def tree_slicing_step(model, verbose=False):
             model.N_candidates_to_chain_old = model.N_candidates_to_chain
             if model.genetic_prior is not None:
                 model.genetic_log_prior = LP_new
+            if model.same_location_prior is not None:
+                model.same_location_prior.log_prior = LP_sloc_new
 #                 print("------------->SLICING!!!!",to_chain,model.genetic_log_prior,model.genetic_prior.log_prior_T(model.T))
 #                 print("\t"*4,model.log_likelihood,model.log_likelihood_transmission_tree(model.T),model.log_likelihood_transmission_tree(T_new))
 #                 print("\t"*4,"Nets attributes")
@@ -323,10 +342,15 @@ def tree_slicing_step(model, verbose=False):
                 print(f"\t-- Slicing rejected with acceptance probability {P}, {gg=}, {pp=}")
                 if model.genetic_prior is not None:
                     print(f"\t--------- Genetic prior: {DL_prior=}, {LP_old=}, {LP_new=}")
+                if model.same_location_prior is not None:
+                    print(f"\t--------- Same location prior: {DL_prior_same_location=}, {LP_sloc_old=}, {LP_sloc_new=}")
                 print("__"*50,"\n\n")
             if model.genetic_prior is not None:
                 model.genetic_prior.correction_LL = LP_top_old
                 model.genetic_prior.log_prior = LP_old
+            if model.same_location_prior is not None:
+                model.same_location_prior.correction_LL = LP_sloc_top_old
+                model.same_location_prior.log_prior = LP_sloc_old
             model.N_candidates_to_chain = model.N_candidates_to_chain_old
 
 
