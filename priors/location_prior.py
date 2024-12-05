@@ -174,15 +174,34 @@ class location_distance_prior_tree():
 
 
 class same_location_prior_tree():
-    def __init__(self, model, log_K, distance_matrix):
-        self.log_K = log_K
+    """
+    Class to compute the prior of the location of the hosts in the tree. The prior model computes which is
+    the probability that a hosts stays where it lives in a characteristic time tau. It will stay where it lives
+    with a probability exp(-t*P_NM/tau) where P is the probability that the host no moves in tau.
+    """
+    def __init__(self, model, P_NM, tau, distance_matrix):
+        self.P_NM = P_NM
+        self.tau = tau
         self.distance_matrix = distance_matrix
+
+        self.log_ratio =lambda Dt: np.log(1-np.exp(-self.P_NM*Dt/self.tau))
 
 
         self.model = model
 
         self.correction_LL = 0
         self.log_prior = 0
+
+    @staticmethod
+    def get_roots_data_subtrees(host, T, dist_matrix):
+        sampled_hosts = []
+        for h in T.successors(host):
+            if not np.isnan(dist_matrix[int(h), int(h)]) and h.sampled:
+                sampled_hosts.append(h)
+            else:
+                sampled_hosts += same_location_prior_tree.get_roots_data_subtrees(h, T, dist_matrix)
+
+        return sampled_hosts
 
     @staticmethod
     def search_firsts_sampled_siblings(host, T):
@@ -192,7 +211,7 @@ class same_location_prior_tree():
             if h.sampled:
                 sampled_hosts.append(h)
             else:
-                sampled_hosts += location_distance_prior_tree.search_firsts_sampled_siblings(h, T)
+                sampled_hosts += same_location_prior_tree.search_firsts_sampled_siblings(h, T)
 
         return sampled_hosts
 
@@ -205,7 +224,7 @@ class same_location_prior_tree():
         parent = next(T.predecessors(host))
 
         if not parent.sampled:
-            return location_distance_prior_tree.search_first_sampleed_parent(parent, T, root)
+            return same_location_prior_tree.search_first_sampleed_parent(parent, T, root)
         else:
             return parent
     @staticmethod
@@ -216,9 +235,7 @@ class same_location_prior_tree():
         if T is None:
             T = self.model.T
             self.model.get_root_subtrees()
-            roots_subtrees = self.model.get_root_subtrees()
-        else:
-            roots_subtrees = utils.search_firsts_sampled_siblings(self.model.root_host, T)
+        roots_subtrees = same_location_prior_tree.get_roots_data_subtrees(self.model.root_host, T, self.distance_matrix)
         non_observed = list(roots_subtrees)
         LL_correction = 0
         # print(roots_subtrees[::-1],shuffle(roots_subtrees[::-1]))
@@ -247,10 +264,9 @@ class same_location_prior_tree():
                 for h2 in T.successors(parent):
                     # print("-"*6,h,parent,h2)
                     if h2.sampled:
-                        if h2 == h:
+                        if h2 == h or np.isnan(self.distance_matrix[int(h2),int(h2)]):
                             continue
-                        elif not h2.sampled:#Eliminar el if seria sensato
-                            continue
+
                         else:
                             # if h2 not in non_observed: continue
                             # print("KAKA2",h2,parent)
@@ -263,10 +279,10 @@ class same_location_prior_tree():
             # non_observed.remove(h)
             if not relatives: continue
             closest = min(relatives, key=lambda h2: h2.t_sample)
-            Dt = h.t_inf#(closest.t_sample + h.t_sample - 2 * parent.t_inf)
+            # print(f"{h} -> {closest}: {self.distance_matrix[int(h), int(closest)]}")
+            Dt = closest.t_inf - parent.t_inf
             # print(f"\t\t{int(pair[0]),int(pair[1])},{Dt`=}")
-            if self.distance_matrix[int(h), int(closest)]> 0:
-                LL_correction += -self.log_K
+            LL_correction += self.log_ratio(Dt)
 
             # print("----->",h,closest,parent)
         return LL_correction
@@ -308,12 +324,12 @@ class same_location_prior_tree():
             if not h.sampled: continue
             for h2 in T[h]:
                 if h2.sampled:
-                    if np.isnan(self.distance_matrix[int(h),int(h2)]):continue
-                    log_L = 0
-                    # print(f"{h}-->{h2}")
-                    Dt = h.t_inf#self.get_mut_time_dist(h, h2)
-                    if self.distance_matrix[int(h), int(h2)] > 0:
-                        log_L = -self.log_K
+                    if np.isnan(self.distance_matrix[int(h),int(h2)]):
+                        continue
+                    Dt = h2.t_inf-h.t_inf
+                    log_L = self.log_ratio(Dt)
+                    # if self.distance_matrix[int(h), int(h2)] > 0:
+                    #     log_L = -self.log_K
 
                     if verbose: print(f"{h}-->{h2} {Dt=} {log_L=}")
                     suma += log_L
@@ -324,10 +340,9 @@ class same_location_prior_tree():
                     siblings = location_distance_prior_tree.search_firsts_sampled_siblings(h2, T)
                     for hs in siblings:
                         if np.isnan(self.distance_matrix[int(h),int(hs)]):continue
-                        Dt = h.t_inf#self.get_mut_time_dist(h, hs)
-                        log_L = 0
-                        if self.distance_matrix[int(h), int(hs)]> 0:
-                            log_L = -self.log_K
+                        Dt = hs.t_inf-h.t_inf
+                        log_L = self.log_ratio(Dt)
+
                         if verbose: print(f"{h}-->{hs} (jumped) {Dt=} {log_L=}")
                         suma += log_L
                         self.log_prior += log_L

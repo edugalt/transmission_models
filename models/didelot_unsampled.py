@@ -149,6 +149,14 @@ class didelot_unsampled():
         """
         return sample(list(self.successors(host)), k)
 
+    def compute_Delta_loc_prior(self,T_new):
+        LP_sloc_top_old = self.same_location_prior.correction_LL
+        LP_sloc_old = self.same_location_prior.log_prior
+        LP_sloc_new = self.same_location_prior.log_prior_T(T_new)
+        DL_prior_same_location = LP_sloc_new - LP_sloc_old
+
+        return DL_prior_same_location, LP_sloc_new, LP_sloc_old, LP_sloc_top_old
+
     def get_candidates_to_chain(self):
         self.candidates_to_chain = [h for h in self.T if
                                     not h == self.root_host and not self.out_degree(self.parent(h)) == 1]
@@ -479,25 +487,6 @@ class didelot_unsampled():
         if T_ini is None:
             T_ini = self.T
 
-        # Delta = 0
-        # for h in hosts:
-        #     if h not in T_end:
-        #         print(f"No T_end", h)
-        #         for i in T_ini.successors(h):
-        #             Delta -= np.log(self.pdf_infection(i.t_inf - h.t_inf))
-        #     elif h not in T_ini:
-        #         print(f"No T_ini", h)
-        #         for i in T_end.successors(h):
-        #             Delta += np.log(self.pdf_infection(i.t_inf - h.t_inf))
-        #     else:
-        #         for j in T_end.successors(h):
-        #             for i in T_ini.successors(h):
-        #                 Dt_ini = i.t_inf - h.t_inf
-        #                 Dt_end = j.t_inf - h.t_inf
-        #                 # print(f"{Dt_ini=}\t{Dt_end=}")
-        #                 Delta += utils.Delta_log_gamma(Dt_ini, Dt_end, self.k_inf, self.theta_inf)
-        #                 print(f"{Dt_ini=}\t{Dt_end=}\t{Delta=}")
-
         L_end = self.get_infection_model_likelihood(hosts, T_end)
 
 
@@ -684,7 +673,7 @@ class didelot_unsampled():
         self.genetic_log_prior = self.genetic_prior.log_prior_T(self.T)
 
 
-    def add_same_location_prior(self,log_K, loc_dist):
+    def add_same_location_prior(self, P_NM, tau, loc_dist):
         """
         Adds a genetic prior to the model that computes the likelihood that two sampled hosts has a relationship given
         the genetic distance of the virus of the hosts.
@@ -700,7 +689,7 @@ class didelot_unsampled():
 
         """
 
-        self.same_location_prior = same_location_prior_tree(self,log_K,loc_dist)
+        self.same_location_prior = same_location_prior_tree(self,P_NM, tau,loc_dist)
         self.same_location_log_prior = self.same_location_prior.log_prior_T(self.T)
 
 
@@ -1133,6 +1122,17 @@ class didelot_unsampled():
 
                         pp *= np.exp(DL_prior)
 
+                    #location prior
+                    if self.same_location_prior is not None:
+                        LP_sloc_top_old = self.same_location_prior.correction_LL
+                        LP_sloc_old = self.same_location_log_prior
+                        selected_host.t_inf = parent.t_inf + Dt_new
+                        LP_sloc_new = self.same_location_prior.log_prior_T(self.T)
+                        selected_host.t_inf = parent.t_inf + Dt_old
+                        DL_prior_same_location = LP_sloc_new - LP_sloc_old
+
+                        pp *= np.exp(DL_prior_same_location)
+
                     P = gg*pp
 
                     if P > 1:
@@ -1141,6 +1141,10 @@ class didelot_unsampled():
                         accepted = True
                         if self.genetic_prior is not None:
                             self.genetic_log_prior = LP_new
+
+                        if self.same_location_prior is not None:
+                            self.same_location_prior.log_prior = LP_sloc_new
+                            self.same_location_log_prior = LP_sloc_new
 
                         if verbose:
                             print("Time shift accepted")
@@ -1152,6 +1156,9 @@ class didelot_unsampled():
                             accepted = True
                             if self.genetic_prior is not None:
                                 self.genetic_log_prior = LP_new
+                            if self.same_location_prior is not None:
+                                self.same_location_prior.log_prior = LP_sloc_new
+                                self.same_location_log_prior = LP_sloc_new
 
                             if verbose:
                                 print("Time shift accepted")
@@ -1162,6 +1169,11 @@ class didelot_unsampled():
                             if self.genetic_prior is not None:
                                 self.genetic_prior.correction_LL = LP_top_old
                                 self.genetic_prior.log_prior = LP_old
+                                self.genetic_log_prior = LP_top_old
+                            if self.same_location_prior is not None:
+                                self.same_location_prior.log_prior = LP_sloc_old
+                                self.same_location_log_prior = LP_sloc_old
+                                self.same_location_prior.correction_LL = LP_sloc_top_old
                             if verbose:
                                 print("Time shift rejected")
                                 if self.genetic_prior is not None:
@@ -1257,6 +1269,16 @@ class didelot_unsampled():
 
             pp *= np.exp(DL_prior)
 
+        # location prior
+        if self.same_location_prior is not None:
+            LP_sloc_top_old = self.same_location_prior.correction_LL
+            LP_sloc_old = self.same_location_log_prior
+            selected_host.t_inf = parent.t_inf + Dt_new
+            LP_sloc_new = self.same_location_prior.log_prior_T(self.T)
+            selected_host.t_inf = parent.t_inf + Dt_old
+            DL_prior_same_location = LP_sloc_new - LP_sloc_old
+
+            pp *= np.exp(DL_prior_same_location)
 
         P = gg * pp
         if verbose:
@@ -1283,6 +1305,9 @@ class didelot_unsampled():
 
                 if self.genetic_prior is not None:
                     self.genetic_log_prior = LP_new
+                if self.same_location_prior is not None:
+                    self.same_location_prior.log_prior = LP_sloc_new
+                    self.same_location_log_prior = LP_sloc_new
             else:
                 rnd = random()
                 # print(P,algo)
@@ -1296,6 +1321,9 @@ class didelot_unsampled():
 
                     if self.genetic_prior is not None:
                         self.genetic_log_prior = LP_new
+                    if self.same_location_prior is not None:
+                        self.same_location_prior.log_prior = LP_sloc_new
+                        self.same_location_log_prior = LP_sloc_new
                     # print("rejected",itt)
                 else:
                     accepted = False
@@ -1303,6 +1331,9 @@ class didelot_unsampled():
                     if self.genetic_prior is not None:
                         self.genetic_prior.correction_LL = LP_top_old
                         self.genetic_prior.log_prior = LP_old
+                    if self.same_location_prior is not None:
+                        self.same_location_prior.log_prior = LP_sloc_old
+                        self.same_location_log_prior = LP_sloc_old
 
                     if verbose:
                         print("Time shift rejected")
@@ -1730,6 +1761,9 @@ class didelot_unsampled():
             DL_prior = LP_new - self.genetic_log_prior
             pp *= np.exp(DL_prior)
 
+        if self.same_location_prior is not None:
+            DL_prior_same_location, LP_sloc_new, LP_sloc_old, LP_sloc_top_old = self.compute_Delta_loc_prior(T_new)
+            pp *= np.exp(DL_prior_same_location)
         P = gg * pp
 
         if metHast:
@@ -1750,6 +1784,10 @@ class didelot_unsampled():
                     self.unsampled_hosts.append(unsampled)
                 if self.genetic_prior is not None:
                     self.genetic_log_prior = LP_new
+                    self.genetic_prior.log_prior = LP_new
+                if self.same_location_prior is not None:
+                    self.same_location_prior.log_prior = LP_sloc_new
+                    self.same_location_log_prior = LP_sloc_new
             else:
                 if random() < P:
                     accepted = True
@@ -1757,6 +1795,10 @@ class didelot_unsampled():
                     self.T = T_new
                     if self.genetic_prior is not None:
                         self.genetic_log_prior = LP_new
+                        self.genetic_prior.log_prior = LP_new
+                    if self.same_location_prior is not None:
+                        self.same_location_prior.log_prior = LP_sloc_new
+                        self.same_location_log_prior = LP_sloc_new
 
                     if not added:
                         if verbose:
@@ -1772,6 +1814,9 @@ class didelot_unsampled():
                     if self.genetic_prior is not None:
                         self.genetic_prior.correction_LL = LP_top_old
                         self.genetic_prior.log_prior = self.genetic_log_prior
+                    if self.same_location_prior is not None:
+                        self.same_location_prior.log_prior = LP_sloc_old
+                        self.same_location_log_prior = LP_sloc_old
 
                     if verbose:
                         if added:
