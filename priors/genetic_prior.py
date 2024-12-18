@@ -20,14 +20,14 @@ class genetic_prior_tree():
         self.log_prior = 0
 
     @staticmethod
-    def search_firsts_sampled_siblings(host, T):
+    def search_firsts_sampled_siblings(host, T, distance_matrix):
 
         sampled_hosts = []
         for h in T.successors(host):
-            if h.sampled:
+            if not np.isnan(distance_matrix[int(h),int(h)]):#If sampled
                 sampled_hosts.append(h)
             else:
-                sampled_hosts += genetic_prior_tree.search_firsts_sampled_siblings(h, T)
+                sampled_hosts += genetic_prior_tree.search_firsts_sampled_siblings(h, T, distance_matrix)
 
         return sampled_hosts
 
@@ -47,16 +47,17 @@ class genetic_prior_tree():
     def get_mut_time_dist(hp, hs):
         return (hs.t_sample + hp.t_sample - 2 * hp.t_inf)
 
-    def get_closest_sampling_siblings(self,T=None):
+    def get_closest_sampling_siblings(self,T=None,verbose=False):
         if T is None:
             T = self.model.T
-            self.model.get_root_subtrees()
-            roots_subtrees = self.model.get_root_subtrees()
-        else:
-            roots_subtrees = utils.search_firsts_sampled_siblings(self.model.root_host, T)
+            # self.model.get_root_subtrees()
+
+        roots_subtrees = get_roots_data_subtrees(self.model.root_host, T, self.distance_matrix)
         non_observed = list(roots_subtrees)
         LL_correction = 0
         # print(roots_subtrees[::-1],shuffle(roots_subtrees[::-1]))
+        if verbose:
+            print("Top correction\n","_"*20)
         for h in roots_subtrees:
             if h not in non_observed: continue
             N_samp = 0
@@ -82,9 +83,7 @@ class genetic_prior_tree():
                 for h2 in T.successors(parent):
                     # print("-"*6,h,parent,h2)
                     if h2.sampled:
-                        if h2 == h:
-                            continue
-                        elif not h2.sampled:#Eliminar el if seria sensato
+                        if h2 == h or np.isnan(self.distance_matrix[int(h2),int(h2)]):
                             continue
                         else:
                             # if h2 not in non_observed: continue
@@ -99,8 +98,9 @@ class genetic_prior_tree():
             if not relatives: continue
             closest = min(relatives, key=lambda h2: h2.t_sample)
             Dt = (closest.t_sample + h.t_sample - 2 * parent.t_inf)
-            # print(f"\t\t{int(pair[0]),int(pair[1])},{Dt`=}")
             LL_correction += np.log(poisson(self.mu * Dt).pmf(self.distance_matrix[int(h), int(closest)]))
+            if verbose:
+                print(f"\t\t{int(h),int(closest)},{Dt=} {self.distance_matrix[int(h), int(closest)]=} {np.log(poisson(self.mu * Dt).pmf(self.distance_matrix[int(h), int(closest)]))}")
 
             # print("----->",h,closest,parent)
         return LL_correction
@@ -198,11 +198,10 @@ class genetic_prior_tree():
         self.log_prior = 0
         suma = 0
         for h in T:
-            if not h.sampled: continue
+            if np.isnan(self.distance_matrix[int(h),int(h)]) or not h.sampled:continue#Check if we have info of h
             for h2 in T[h]:
-                if h2.sampled:
-                    if np.isnan(self.distance_matrix[int(h), int(h2)]): continue
-                    # print(f"{h}-->{h2}")
+                if not np.isnan(self.distance_matrix[int(h2), int(h2)]) and h2.sampled:  # Check if we have info of h2
+                    # print(f"{h}-->{h2}  {self.distance_matrix[int(h2), int(h2)]}")
                     Dt = self.get_mut_time_dist(h, h2)
 
                     log_L = np.log(poisson(self.mu * Dt).pmf(self.distance_matrix[int(h), int(h2)]))
@@ -212,20 +211,19 @@ class genetic_prior_tree():
                     # p = poisson(self.mu * Dt).pmf(self.distance_matrix[int(h), int(h2)])
                     # print(int(h),int(h2),Dt,p,np.log(p))
                 else:
-                    siblings = genetic_prior_tree.search_firsts_sampled_siblings(h2, T)
+                    siblings = genetic_prior_tree.search_firsts_sampled_siblings(h2, T,self.distance_matrix)
                     for hs in siblings:
-                        if np.isnan(self.distance_matrix[int(h),int(hs)]):continue
-
+                        if np.isnan(self.distance_matrix[int(hs),int(hs)]) or not hs.sampled:continue
+                        # print(f"{h}-->{hs} (jumped) {self.distance_matrix[int(h),int(hs)]}, {hs.sampled}")
                         Dt = self.get_mut_time_dist(h, hs)
                         log_L = np.log(poisson(self.mu * Dt).pmf(self.distance_matrix[int(h), int(hs)]))
                         if verbose: print(f"{h}-->{hs} (jumped) {Dt=} {log_L=}")
                         suma += log_L
                         self.log_prior += log_L
         if verbose: print(f"{suma=}")
-
         if update_up:
             # self.model.get_root_subtrees()
-            LL_correction = self.get_closest_sampling_siblings(T)
+            LL_correction = self.get_closest_sampling_siblings(T,verbose=verbose)
 
             self.correction_LL = LL_correction
             self.log_prior += LL_correction
@@ -272,7 +270,7 @@ class genetic_prior_tree():
             Delta += LL_end - LL_ini
 
         # Sons
-        siblings = genetic_prior_tree.search_firsts_sampled_siblings(host, T_ini)
+        siblings = genetic_prior_tree.search_firsts_sampled_siblings(host, T_ini, self.distance_matrix)
         LL = 0
         for h in siblings:
             D_time = h.t_sample - host.t_sample
@@ -280,7 +278,7 @@ class genetic_prior_tree():
             LL -= np.log(p.prior_dist.pmf(D_time * D_gen))
             # print("sibling ini",D_time,D_gen,LL,p.prior_dist.pmf(D_time*D_gen))
 
-        siblings = genetic_prior_tree.search_firsts_sampled_siblings(host, T_end)
+        siblings = genetic_prior_tree.search_firsts_sampled_siblings(host, T_end, self.distance_matrix)
         for h in siblings:
             D_time = h.t_sample - host.t_sample
             D_gen = self.distance_matrix[host.index, h.index]
@@ -289,3 +287,15 @@ class genetic_prior_tree():
         Delta += LL
 
         return Delta
+
+
+
+def get_roots_data_subtrees(host, T, dist_matrix):
+    sampled_hosts = []
+    for h in T.successors(host):
+        if not np.isnan(dist_matrix[int(h), int(h)]) and h.sampled:
+            sampled_hosts.append(h)
+        else:
+            sampled_hosts += get_roots_data_subtrees(h, T, dist_matrix)
+
+    return sampled_hosts

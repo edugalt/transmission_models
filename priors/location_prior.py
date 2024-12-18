@@ -181,6 +181,7 @@ class same_location_prior_tree():
     """
     def __init__(self, model, P_NM, tau, distance_matrix):
         self.P_NM = P_NM
+        self.log_P_NM = np.log(P_NM)
         self.tau = tau
         self.distance_matrix = distance_matrix
 
@@ -204,29 +205,17 @@ class same_location_prior_tree():
         return sampled_hosts
 
     @staticmethod
-    def search_firsts_sampled_siblings(host, T):
+    def search_firsts_sampled_siblings(host, T, distance_matrix):
 
         sampled_hosts = []
         for h in T.successors(host):
-            if h.sampled:
+            if not np.isnan(distance_matrix[int(h),int(h)]):#If sampled
                 sampled_hosts.append(h)
             else:
-                sampled_hosts += same_location_prior_tree.search_firsts_sampled_siblings(h, T)
+                sampled_hosts += same_location_prior_tree.search_firsts_sampled_siblings(h, T, distance_matrix)
 
         return sampled_hosts
 
-    @staticmethod
-    def search_first_sampleed_parent(host, T, root):
-
-        if host == root:
-            return None
-
-        parent = next(T.predecessors(host))
-
-        if not parent.sampled:
-            return same_location_prior_tree.search_first_sampleed_parent(parent, T, root)
-        else:
-            return parent
     @staticmethod
     def get_mut_time_dist(hp, hs):
         return (hs.t_sample + hp.t_sample - 2 * hp.t_inf)
@@ -282,7 +271,11 @@ class same_location_prior_tree():
             # print(f"{h} -> {closest}: {self.distance_matrix[int(h), int(closest)]}")
             Dt = closest.t_inf - parent.t_inf
             # print(f"\t\t{int(pair[0]),int(pair[1])},{Dt`=}")
-            LL_correction += self.log_ratio(Dt)
+            if self.distance_matrix[int(h), int(h2)] > 0:
+                log_L = self.log_ratio(Dt)
+            else:
+                log_L = self.log_P_NM
+            LL_correction += log_L#self.log_ratio(Dt)
 
             # print("----->",h,closest,parent)
         return LL_correction
@@ -321,15 +314,15 @@ class same_location_prior_tree():
         self.log_prior = 0
         suma = 0
         for h in T:
-            if not h.sampled: continue
+            if np.isnan(self.distance_matrix[int(h),int(h)]) or not h.sampled:continue#Check if we have info of h
             for h2 in T[h]:
-                if h2.sampled:
-                    if np.isnan(self.distance_matrix[int(h),int(h2)]):
-                        continue
+                if not np.isnan(self.distance_matrix[int(h2),int(h2)]) and h2.sampled:#Check if we have info of h2
                     Dt = h2.t_inf-h.t_inf
-                    log_L = self.log_ratio(Dt)
-                    # if self.distance_matrix[int(h), int(h2)] > 0:
-                    #     log_L = -self.log_K
+                    # log_L = self.log_ratio(Dt)
+                    if self.distance_matrix[int(h), int(h2)] > 0:
+                        log_L = self.log_ratio(Dt)
+                    else:
+                        log_L = self.log_P_NM
 
                     if verbose: print(f"{h}-->{h2} {Dt=} {log_L=}")
                     suma += log_L
@@ -339,9 +332,13 @@ class same_location_prior_tree():
                 else:
                     siblings = location_distance_prior_tree.search_firsts_sampled_siblings(h2, T)
                     for hs in siblings:
-                        if np.isnan(self.distance_matrix[int(h),int(hs)]):continue
+                        if np.isnan(self.distance_matrix[int(hs),int(hs)]) or not hs.sampled:continue
                         Dt = hs.t_inf-h.t_inf
-                        log_L = self.log_ratio(Dt)
+
+                        if self.distance_matrix[int(h), int(h2)] > 0:
+                            log_L = self.log_ratio(Dt)
+                        else:
+                            log_L = self.log_P_NM
 
                         if verbose: print(f"{h}-->{hs} (jumped) {Dt=} {log_L=}")
                         suma += log_L
@@ -358,4 +355,17 @@ class same_location_prior_tree():
             self.correction_LL = 0
         # print(f"{self.correction_LL-self.log_prior=},{self.correction_LL=}")
         return self.log_prior
+
+
+def search_first_sampled_parent(host, T, root, distance_matrix):
+
+    if host == root:
+        return None
+
+    parent = next(T.predecessors(host))
+
+    if np.isnan(distance_matrix[int(host),int(host)]):# if unsampled
+        return search_first_sampled_parent(parent, T, root, distance_matrix)
+    else:
+        return parent
 

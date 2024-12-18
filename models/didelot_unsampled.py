@@ -1169,7 +1169,7 @@ class didelot_unsampled():
                             if self.genetic_prior is not None:
                                 self.genetic_prior.correction_LL = LP_top_old
                                 self.genetic_prior.log_prior = LP_old
-                                self.genetic_log_prior = LP_top_old
+                                self.genetic_log_prior = LP_old
                             if self.same_location_prior is not None:
                                 self.same_location_prior.log_prior = LP_sloc_old
                                 self.same_location_log_prior = LP_sloc_old
