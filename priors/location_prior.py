@@ -4,6 +4,7 @@ from scipy.special import gamma as GAMMA
 from scipy.stats import nbinom, gamma, binom, expon, poisson
 import numpy as np
 import transmission_models.utils as utils
+from transmission_models.priors.partial_sampled_utils import *
 from itertools import combinations
 import networkx as nx
 
@@ -185,7 +186,7 @@ class same_location_prior_tree():
         self.tau = tau
         self.distance_matrix = distance_matrix
 
-        self.log_ratio =lambda Dt: np.log(1-np.exp(-self.P_NM*Dt/self.tau))
+        self.log_ratio =lambda Dt: np.log(self.P_NM*(1-np.exp(-Dt/self.tau)))
 
 
         self.model = model

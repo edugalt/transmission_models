@@ -2,6 +2,7 @@
 from random import choice,randint,random,sample,choices
 from scipy.special import gamma as GAMMA
 from scipy.stats import nbinom, gamma, binom, expon, poisson
+from transmission_models.priors.partial_sampled_utils import *
 import numpy as np
 import transmission_models.utils as utils
 from itertools import combinations
@@ -24,7 +25,7 @@ class genetic_prior_tree():
 
         sampled_hosts = []
         for h in T.successors(host):
-            if not np.isnan(distance_matrix[int(h),int(h)]):#If sampled
+            if not np.isnan(distance_matrix[int(h),int(h)]) and h.sampled:#If sampled
                 sampled_hosts.append(h)
             else:
                 sampled_hosts += genetic_prior_tree.search_firsts_sampled_siblings(h, T, distance_matrix)
@@ -32,7 +33,7 @@ class genetic_prior_tree():
         return sampled_hosts
 
     @staticmethod
-    def search_first_sampleed_parent(host, T, root):
+    def search_first_sampled_parent(host, T, root):
 
         if host == root:
             return None
@@ -40,7 +41,7 @@ class genetic_prior_tree():
         parent = next(T.predecessors(host))
 
         if not parent.sampled:
-            return genetic_prior_tree.search_first_sampleed_parent(parent, T, root)
+            return genetic_prior_tree.search_first_sampled_parent(parent, T, root)
         else:
             return parent
     @staticmethod
@@ -178,7 +179,7 @@ class genetic_prior_tree():
                 Dt = host.t_sample - parent.t_sample
                 log_prior += np.log(poisson(self.mu * Dt).pmf(self.distance_matrix[int(host), int(parent)]))
             else:
-                parent = genetic_prior_tree.search_first_sampleed_parent(host, T, self.model.root_host)
+                parent = genetic_prior_tree.search_first_sampled_parent(host, T, self.model.root_host)
                 if parent is not None:
                     # print(f"{parent}-->{host}")
                     Dt = host.t_sample - parent.t_sample
@@ -193,6 +194,32 @@ class genetic_prior_tree():
         Dt = h2.t_sample - h1.t_sample
         return np.log(poisson(self.mu * Dt).pmf(self.distance_matrix[int(h1), int(h2)]))
 
+    def log_prior_host_list(self,host_list,T=None):
+        log_prior = 0
+        for host in host_list:
+            log_prior += self.log_prior_host(host,T)
+        return log_prior
+
+    def log_prior_host(self,host,T=None):
+        """
+        Calculate the prior of a host
+        Args:
+            host:
+
+        Returns:
+
+        """
+        if T is None:
+            T = self.model.T
+        sampled_siblings = genetic_prior_tree.search_firsts_sampled_siblings(host, T, self.distance_matrix)
+        log_prior = 0
+        for h2 in sampled_siblings:
+
+            Dt = self.get_mut_time_dist(host, h2)
+            lp = np.log(poisson(self.mu * Dt).pmf(self.distance_matrix[int(host), int(h2)]))
+            # print(host,h2,lp)
+            log_prior += lp
+        return log_prior
 
     def log_prior_T(self, T, update_up=True,verbose=False):
         self.log_prior = 0
@@ -244,7 +271,7 @@ class genetic_prior_tree():
         # Parent
         if host != self.model.root_host:
             # Ini
-            parent = genetic_prior_tree.search_first_sampleed_parent(host, T_ini, model.root_host)
+            parent = genetic_prior_tree.search_first_sampled_parent(host, T_ini, model.root_host)
             if parent is None:
                 D_time_ini = 0
                 D_gen_ini = 0
@@ -256,7 +283,7 @@ class genetic_prior_tree():
             # print("parent ini",D_time_ini,D_gen_ini,LL_ini)
 
             # End
-            parent = genetic_prior_tree.search_first_sampleed_parent(host, T_end, model.root_host)
+            parent = genetic_prior_tree.search_first_sampled_parent(host, T_end, model.root_host)
             if parent is None:
                 D_time_end = 0
                 D_gen_end = 0
