@@ -1116,7 +1116,7 @@ class didelot_unsampled():
                         LP_top_old = self.genetic_prior.correction_LL
                         LP_old = self.genetic_log_prior
                         selected_host.t_inf = parent.t_inf + Dt_new
-                        LP_new = self.genetic_prior.log_prior_T(self.T)
+                        LP_new = self.genetic_prior.log_prior_T(self.T,verbose=verbose)
                         selected_host.t_inf = parent.t_inf + Dt_old
                         DL_prior = LP_new-LP_old
 
@@ -1757,7 +1757,7 @@ class didelot_unsampled():
 
         if self.genetic_prior is not None:
             LP_top_old = self.genetic_prior.correction_LL
-            LP_new = self.genetic_prior.log_prior_T(T_new)
+            LP_new = self.genetic_prior.log_prior_T(T_new,verbose=verbose)
             DL_prior = LP_new - self.genetic_log_prior
             pp *= np.exp(DL_prior)
 

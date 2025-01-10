@@ -229,7 +229,7 @@ class genetic_prior_tree():
             for h2 in T[h]:
                 if not np.isnan(self.distance_matrix[int(h2), int(h2)]) and h2.sampled:  # Check if we have info of h2
                     # print(f"{h}-->{h2}  {self.distance_matrix[int(h2), int(h2)]}")
-                    Dt = self.get_mut_time_dist(h, h2)
+                    Dt = h2.t_sample - h2.t_inf + np.abs(h.t_sample - h2.t_inf)
 
                     log_L = np.log(poisson(self.mu * Dt).pmf(self.distance_matrix[int(h), int(h2)]))
                     if verbose: print(f"{h}-->{h2} {Dt=} {log_L=}")
@@ -238,19 +238,20 @@ class genetic_prior_tree():
                     # p = poisson(self.mu * Dt).pmf(self.distance_matrix[int(h), int(h2)])
                     # print(int(h),int(h2),Dt,p,np.log(p))
                 else:
-                    siblings = genetic_prior_tree.search_firsts_sampled_siblings(h2, T,self.distance_matrix)
+                    siblings = genetic_prior_tree.search_firsts_sampled_siblings(h2, T)
                     for hs in siblings:
                         if np.isnan(self.distance_matrix[int(hs),int(hs)]) or not hs.sampled:continue
                         # print(f"{h}-->{hs} (jumped) {self.distance_matrix[int(h),int(hs)]}, {hs.sampled}")
-                        Dt = self.get_mut_time_dist(h, hs)
+                        Dt =  hs.t_sample - h2.t_inf + np.abs(h.t_sample - h2.t_inf)
                         log_L = np.log(poisson(self.mu * Dt).pmf(self.distance_matrix[int(h), int(hs)]))
                         if verbose: print(f"{h}-->{hs} (jumped) {Dt=} {log_L=}")
                         suma += log_L
                         self.log_prior += log_L
         if verbose: print(f"{suma=}")
+
         if update_up:
             # self.model.get_root_subtrees()
-            LL_correction = self.get_closest_sampling_siblings(T,verbose=verbose)
+            LL_correction = self.get_closest_sampling_siblings(T)
 
             self.correction_LL = LL_correction
             self.log_prior += LL_correction

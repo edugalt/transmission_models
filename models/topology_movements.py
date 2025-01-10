@@ -266,14 +266,14 @@ def tree_slicing_step(model, verbose=False):
     if model.genetic_prior is not None:
         LP_top_old = model.genetic_prior.correction_LL
         LP_old = model.genetic_log_prior
-        LP_new = model.genetic_prior.log_prior_T(T_new)
+        LP_new = model.genetic_prior.log_prior_T(T_new,verbose=verbose)
         DL_prior = LP_new - LP_old
         # print("Como salga cero, me corto los huevos", DL_prior)
         pp *= np.exp(DL_prior)
     if model.same_location_prior is not None:
         LP_sloc_top_old = model.same_location_prior.correction_LL
         LP_sloc_old = model.same_location_prior.log_prior
-        LP_sloc_new = model.same_location_prior.log_prior_T(T_new)
+        LP_sloc_new = model.same_location_prior.log_prior_T(T_new,verbose=verbose)
         DL_prior_same_location = LP_sloc_new - LP_sloc_old
         pp *= np.exp(DL_prior_same_location)
         # print("Como salga
