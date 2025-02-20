@@ -186,7 +186,7 @@ class same_location_prior_tree():
         self.tau = tau
         self.distance_matrix = distance_matrix
 
-        self.log_ratio =lambda Dt: np.log(self.P_NM*(1-np.exp(-Dt/self.tau)))
+        self.log_ratio =lambda Dt: np.log((1 - self.P_NM)*(1-np.exp(-Dt/self.tau)))
 
 
         self.model = model

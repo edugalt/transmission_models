@@ -168,7 +168,7 @@ class genetic_prior_tree():
                 p = poisson(self.mu * Dt).pmf(self.distance_matrix[int(host), int(h2)])
                 # print(int(h),int(h2),Dt,p,np.log(p))
             else:
-                siblings = genetic_prior_tree.search_firsts_sampled_siblings(h2, T)
+                siblings = genetic_prior_tree.search_firsts_sampled_siblings(h2, T, self.distance_matrix)
                 for hs in siblings:
                     # print(f"{host}-->{hs}")
                     Dt = hs.t_sample - host.t_sample
@@ -238,7 +238,7 @@ class genetic_prior_tree():
                     # p = poisson(self.mu * Dt).pmf(self.distance_matrix[int(h), int(h2)])
                     # print(int(h),int(h2),Dt,p,np.log(p))
                 else:
-                    siblings = genetic_prior_tree.search_firsts_sampled_siblings(h2, T)
+                    siblings = genetic_prior_tree.search_firsts_sampled_siblings(h2, T, self.distance_matrix)
                     for hs in siblings:
                         if np.isnan(self.distance_matrix[int(hs),int(hs)]) or not hs.sampled:continue
                         # print(f"{h}-->{hs} (jumped) {self.distance_matrix[int(h),int(hs)]}, {hs.sampled}")
