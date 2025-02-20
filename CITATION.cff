@@ -1,0 +1,34 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: Infectious tree network sampler
+message: >-
+  Programs and datasets used to make the analysis done in
+  the paper []
+type: software
+authors:
+  - given-names: Oscar
+    family-names: Fajardo-Fontiveros
+    email: oscarcapote@hotmail.es
+    affiliation: University of Sydney
+  - given-names: Carl J. E.
+    family-names: Suster
+    affiliation: >-
+      Sydney Infectious Diseases Institute, Faculty of
+      Medicine and Health, The University of Sydney,
+      Westmead, NSW, Australia
+  - given-names: Eduardo
+    family-names: G. Altmann
+    email: eduardo.altmann@sydney.edu.au
+    affiliation: University of Sydney
+repository-code: 'https://github.com/oscarcapote/transmission_models'
+abstract: >-
+  Library that uses Bayesian inference and Monte Carlo
+  methods to sample infectious trees
+keywords:
+  - bayesian inference
+  - phylogenies
+  - mcmc
+  - epidemiology
+license: AGPL-3.0-or-later
