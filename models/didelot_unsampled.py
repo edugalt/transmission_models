@@ -4,10 +4,11 @@ from math import factorial
 
 from transmission_models import *
 import transmission_models.utils as utils
+from transmission_models.host import *
 # from transmission_models.utils import tree_to_newick
 from transmission_models.models.topology_movements import *
 
-from random import random, randint
+from random import random, randint,choice
 from scipy.stats import nbinom, gamma, binom, expon, norm
 from scipy.special import gamma as GAMMA
 import networkx as nx

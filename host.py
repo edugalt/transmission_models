@@ -2,10 +2,17 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 from random import choice,randint,random,sample,choices
-from scipy.stats import nbinom, gamma, binom, expon
+from scipy.stats import nbinom, gamma, binom, expon, norm
 from matplotlib.lines import Line2D
 import pandas as pd
 from networkx.drawing.nx_pydot import graphviz_layout
+
+
+
+try:
+    import imageio
+except ImportError:
+    pass
 
 
 #CLASSES
@@ -17,8 +24,10 @@ class host:
     - index (int): The index of the host.
     - sampled (bool): Indicates whether the host has been sampled or not.
     - genetic_data (list): The genetic data of the host.
+    - dict_attributes (dict): A dictionary to store additional attributes.
     - t_inf (int): Time of infection.
     - t_sample (optional): The time the host was sampled.
+
 
     Methods:
     - t_inf (property): Getter and setter for the time of infection attribute.
@@ -26,7 +35,7 @@ class host:
     - __str__(): Returns a string with the index of the host.
 
     Example usage:
-    >>> h = host(1, True, ['A', 'T', 'C', 'G'], 10, sample_time=15)
+    >>> h = host('host1', 1, ['A', 'T', 'C', 'G'], 10, t_sample=15)
     >>> print(h.t_inf)
     10
     >>> h.t_inf = 20
@@ -35,7 +44,7 @@ class host:
     >>> print(h.get_genetic_str())
     ATCG
     >>> print(h)
-    1
+    host1
 
     Note: This class follows the Python naming convention for class names (using PascalCase).
     """
@@ -58,8 +67,9 @@ class host:
         self.t_sample = t_sample
         self.genetic_data = genetic_data
         self._t_inf = t_inf
-        self.index = index
+        self.index = int(index)
         self.id = id
+        self.dict_attributes = {}
 
     @property
     def t_inf(self):
@@ -142,11 +152,13 @@ def binom_mutation(chain_length,p,genome):
        - If the original nucleotide is 'G', it is replaced with a randomly chosen nucleotide from 'ACT'.
     5. Returns the mutated genome sequence as 'new_genome'.
 
+
     Example usage:
-    >>> genome = "ATCGGATCGA"
+    >>> genome = ['A', 'T', 'C', 'G', 'G', 'A', 'T', 'C', 'G', 'A']
     >>> mutated_genome = binom_mutation(len(genome), 0.2, genome)
     >>> print(mutated_genome)
-    ['A', 'T', 'C', 'A', 'G', 'A', 'T', 'C', 'G', 'A', 'A']
+    ['A', 'T', 'C', 'A', 'G', 'A', 'T', 'C', 'G', 'A']
+
 
     Note: The function requires the 'numpy' library for generating random numbers from a binomial distribution.
     """
@@ -193,10 +205,10 @@ def one_mutation(chain_length,p,genome):
     4. Returns the mutated genome sequence as 'new_genome'.
 
     Example usage:
-    >>> genome = "ATCGGATCGA"
+    >>> genome = ['A', 'T', 'C', 'G', 'G', 'A', 'T', 'C', 'G', 'A']
     >>> mutated_genome = one_mutation(len(genome), 0.2, genome)
     >>> print(mutated_genome)
-    ['A', 'T', 'C', 'A', 'G', 'A', 'T', 'C', 'G', 'T', 'A']
+    ['A', 'T', 'C', 'A', 'G', 'A', 'T', 'C', 'G', 'T']
 
     Note: The function requires the 'random' library for generating random numbers and choices.
     """
@@ -235,14 +247,3 @@ def average_mutations(mu,P_mut,tau,Dt,host_genetic):
     return mutations,t_mutations
 
 
-def plot_transmision_network(T,nodes_labels=False):
-    pos = graphviz_layout(T, prog="dot")
-    colors = ["red" if not h.sampled else "blue" for h in T]
-    ColorLegend = {'tested': 2,'no tested': 1}
-    nx.draw(T, pos,with_labels=nodes_labels,node_color=colors)
-    legend_elements = [
-        Line2D([0], [0], marker='o', color='w', label='tested',markerfacecolor='b', markersize=15),
-        Line2D([0], [0], marker='o', color='w', label='no tested',markerfacecolor='r', markersize=15),
-    ]
-    plt.legend(handles=legend_elements, loc='upper right')
-    plt.show()
