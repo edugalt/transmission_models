@@ -218,7 +218,7 @@ def tree_slicing_to_chain(model, selected_host=None, selected_sibling=None, forc
     return T_new, gg, selected_host, parent, selected_sibling, True
 
 
-def tree_slicing_step(model, verbose=False):
+def tree_slicing_step(model,P_to_offspring=0.5, verbose=False):
     """
     Performs a tree slicing step in the transmission tree. Can be either to parent or sibling with equal probability.
 
@@ -234,14 +234,16 @@ def tree_slicing_step(model, verbose=False):
 
     # L_old = model.get_log_likelihood_transmission()
 
-    if random() > 0.5:
-        if verbose:
-            print(f"Slicing to chain")
-        T_new, gg, selected_host, h_a, h_b, to_chain = tree_slicing_to_chain(model,verbose=verbose)
-    else:
+    if random() < P_to_offspring:
         if verbose:
             print(f"Slicing to offspring")
         T_new, gg, selected_host, h_a, h_b, to_chain = tree_slicing_to_offspring(model,verbose=verbose)
+        gg *= (1 - P_to_offspring) / P_to_offspring
+    else:
+        if verbose:
+            print(f"Slicing to chain")
+        T_new, gg, selected_host, h_a, h_b, to_chain = tree_slicing_to_chain(model,verbose=verbose)
+        gg *= P_to_offspring / (1 - P_to_offspring)
 
     # If to_chain and a link is impossible to exists, automatically reject the proposal
     if (h_b.t_inf > selected_host.t_inf) and to_chain:

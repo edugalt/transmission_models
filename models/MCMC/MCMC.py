@@ -1,13 +1,12 @@
 import numpy as np
 import transmission_models.utils as utils
-from duplicity.globals import select
 from transmission_models.utils import hierarchy_pos,hierarchy_pos_times,plot_transmision_network,tree_to_newick,search_firsts_sampled_siblings
 from transmission_models.models import didelot_unsampled as du
-from transmission_models.models.topology_movements import *
+from transmission_models.models.topology_movements import tree_slicing_step
 
 
 class MCMC():
-    def __init__(self, model, P_rewire=1/3, P_add_remove=1/3, P_t_shift=1/3, P_add=0.5, P_rewire_add=0.5,P_add_offspring=0.5):
+    def __init__(self, model, P_rewire=1/3, P_add_remove=1/3, P_t_shift=1/3, P_add=0.5, P_rewire_add=0.5,P_offspring_add=0.5,P_to_offspring=0.5):
         """
         Initializes a new instance of the MCMC class.
 
@@ -18,7 +17,7 @@ class MCMC():
         - P_t_shift (float): The probability of shifting the infection time of the host in the transmission tree.
         - P_add (float): The probability of adding a new host to the transmission tree once the add/remove have been proposed.
         - P_rewire_add (float): The probability of rewiring the new unsampled host once the add have been proposed.
-        - P_add_offspring (float): The probability that the new unsampled host is an offspring once the add and rewire have been proposed.
+        - P_offspring_add (float): The probability that the new unsampled host is an offspring once the add and rewire have been proposed.
         """
 
         self.model = model
@@ -27,7 +26,8 @@ class MCMC():
         self.P_t_shift = P_t_shift
         self.P_add = P_add
         self.P_rewire_add = P_rewire_add
-        self.P_add_offspring = P_add_offspring
+        self.P_offspring_add = P_offspring_add
+        self.P_to_offspring = P_to_offspring
 
     def MCMC_iteration(self,verbose=False):
         """
@@ -62,19 +62,18 @@ class MCMC():
             if verbose:
                 print(f"\t-- Add or remove")
 
-            T_new, gg, pp, P, added, accepted, DL = self.model.add_remove_step(P_add=self.P_add,P_rewiring=self.P_rewire_add,P_off=self.P_add_offspring,verbose=verbose)
+            T_new, gg, pp, P, added, accepted, DL = self.model.add_remove_step(P_add=self.P_add,P_rewiring=self.P_rewire_add,P_off=self.P_offspring_add,verbose=verbose)
             # pp = P / gg
         elif move == "rewire":
             if verbose:
                 print(f"\t-- Rewiring")
             ## SLIDES
-            T_new, gg, pp, P, selected_host, accepted, DL = tree_slicing_step(self.model, verbose=verbose)
+            T_new, gg, pp, P, selected_host, accepted, DL = tree_slicing_step(self.model,P_to_offspring = self.P_to_offspring , verbose=verbose)
 
 
         elif move == "time_shift":
             if verbose:
                 print(f"\t-- Time shift")
-            t_inf_new, gg, pp, P, selected_host, accepted, DL = self.model.infection_time_from_infection_model_step(
-                verbose=verbose)
+            t_inf_new, gg, pp, P, selected_host, accepted, DL = self.model.infection_time_from_infection_model_step(verbose=verbose)
 
         return move,gg,pp,P,accepted,DL

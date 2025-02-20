@@ -7,7 +7,7 @@ import transmission_models.utils as utils
 # from transmission_models.utils import tree_to_newick
 from transmission_models.models.topology_movements import *
 
-from random import random
+from random import random, randint
 from scipy.stats import nbinom, gamma, binom, expon, norm
 from scipy.special import gamma as GAMMA
 import networkx as nx
@@ -1341,7 +1341,7 @@ class didelot_unsampled():
 
         return Dt_new, gg, pp, P, selected_host, accepted, DL
 
-    def add_unsampled_with_times(self, selected_host=None, P_rewiring=0.5, P_off=0.5, verbose=False,
+    def add_unsampled_with_times(self, selected_host=None, P_add=0.5,  P_rewiring=0.5, P_off=0.5, verbose=False,
                                  only_geometrical=False, detailed_probs=False):
         """
         Method to propose the addition of an unsampled host to the transmission tree and get the probability of the proposal.
@@ -1351,6 +1351,8 @@ class didelot_unsampled():
 
         selected_host: host object
             Host to which the unsampled host will be added. If None, a host is randomly selected.
+        P_add: float
+            Probability of proposing to add a new host to the transmission tree.
         P_rewiring: float
             Probability of rewiring the new host to another sibling host.
         P_off: float
@@ -1517,10 +1519,11 @@ class didelot_unsampled():
 
         g_ret = 1 / (len(self.unsampled_hosts) + 1)
 
+        # If there are no more unsampled hosts, the proposal is divided by P_add
         if len(self.unsampled_hosts) == 0:
             g_ret /= 2
 
-        gg = g_ret / g_go
+        gg = ((1-P_add)*g_ret) / (P_add*g_go)
 
         # if abs(gg*prob_time-0.5)<1e-6:
         #     print(gg,g_go,g_ret,len(self.T),(len(self.unsampled_hosts),k_selected_host))
@@ -1550,7 +1553,7 @@ class didelot_unsampled():
         else:
             return T_new, gg, unsampled, True
 
-    def remove_unsampled_with_times(self, selected_host=None, P_rewiring=0.5, P_off=0.5, only_geometrical=False,
+    def remove_unsampled_with_times(self, selected_host=None, P_add=0.5, P_rewiring=0.5, P_off=0.5, only_geometrical=False,
                                     detailed_probs=False, verbose=False):
         """
         Method to propose the removal of an unsampled host from the transmission tree and get the probability of the proposal.
@@ -1560,6 +1563,8 @@ class didelot_unsampled():
         -----------
         selected_host: host object
             Unsampled host to be removed from the transmission tree. If None, a host is randomly selected.
+        P_add: float
+            Probability of proposing to add a new host to the transmission tree.
         P_rewiring: float
             Probability of rewiring the new host to another sibling host.
         P_off: float
@@ -1687,7 +1692,7 @@ class didelot_unsampled():
         if len(self.unsampled_hosts) == 1:
             g_go /= 2
 
-        gg = g_ret / g_go
+        gg = (P_add * g_ret) / ((1-P_add) * g_go)
 
         if only_geometrical:
             pt = None
@@ -1738,9 +1743,9 @@ class didelot_unsampled():
         """
 
         if random() < P_add:
-            T_new, gg, unsampled, added =  self.add_unsampled_with_times( P_rewiring=P_rewiring, P_off=P_off, verbose=verbose)
+            T_new, gg, unsampled, added =  self.add_unsampled_with_times(P_add=P_add, P_rewiring=P_rewiring, P_off=P_off, verbose=verbose)
         else:
-            T_new, gg, unsampled, added =  self.remove_unsampled_with_times( P_rewiring=P_rewiring, P_off=P_off, verbose=verbose)
+            T_new, gg, unsampled, added =  self.remove_unsampled_with_times(P_add=P_add, P_rewiring=P_rewiring, P_off=P_off, verbose=verbose)
 
         if added:
             affected_hosts = [list(T_new.predecessors(unsampled))[0]] + [h for h in T_new.successors(unsampled)]
