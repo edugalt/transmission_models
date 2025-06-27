@@ -254,7 +254,7 @@ def plot_transmision_network(T,nodes_labels=False,pos = None, highlighted_nodes 
     if pos is None:
         pos = graphviz_layout(T, prog="dot")
     colors = ["red" if not h.sampled else "blue" for h in T]
-    ColorLegend = {'tested': 2,'no tested': 1}
+    ColorLegend = {'tested': 2,'not tested': 1}
 
     if highlighted_nodes is not None:
         edgecolors = ["black" if h not in highlighted_nodes else "green" for h in T]
@@ -272,7 +272,7 @@ def plot_transmision_network(T,nodes_labels=False,pos = None, highlighted_nodes 
     nx.draw(T, pos,with_labels=nodes_labels,node_color=colors, edgecolors=edgecolors, linewidths=linewidths,ax=ax)
     legend_elements = [
         Line2D([0], [0], marker='o', color='w', label='tested',markerfacecolor='b', markersize=15),
-        Line2D([0], [0], marker='o', color='w', label='no tested',markerfacecolor='r', markersize=15),
+        Line2D([0], [0], marker='o', color='w', label='not tested',markerfacecolor='r', markersize=15),
     ]
 
     if ax is None:
