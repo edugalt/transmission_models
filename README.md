@@ -1,12 +1,12 @@
 # Transmission Model Library
 
-This repository contains the codes used in the manuscript "Inference of epidemic networks: the effect of different data
-types", by Oscar Fajardo-Fontiveros, Carl J. E. Suster, and Eduardo G. Altmann, developed at The University
+This repository contains the codes and data used in the manuscript "Inference of epidemic networks: the effect of different data
+types", by [Oscar Fajardo-Fontiveros](https://www.maths.usyd.edu.au/u/oscarf/), [Carl J. E. Suster](https://www.sydney.edu.au/medicine-health/about/our-people/academic-staff/carl.suster.html), and [Eduardo G. Altmann](https://www.maths.usyd.edu.au/u/ega), developed at The University
 of Sydney, Sydney, NSW, Australia
 
 # Repository description
 
-The Jupyter Notebook "Example.ipynb" contains an illustration of the usage of this library. 
+The Jupyter Notebook [Example.ipynb](https://github.com/edugalt/transmission_models/blob/main/Example.ipynb) contains an illustration of the usage of this library. 
 
 - data/
 
