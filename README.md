@@ -2,7 +2,7 @@
 
 This repository contains the codes and data used in the manuscript "Inference of epidemic networks: the effect of different data
 types", by [Oscar Fajardo-Fontiveros](https://www.maths.usyd.edu.au/u/oscarf/), [Carl J. E. Suster](https://www.sydney.edu.au/medicine-health/about/our-people/academic-staff/carl.suster.html), and [Eduardo G. Altmann](https://www.maths.usyd.edu.au/u/ega), developed at The University
-of Sydney, Sydney, NSW, Australia
+of Sydney, Sydney, NSW, Australia. The code in this repository was created by [Oscar Fajardo-Fontiveros](https://www.maths.usyd.edu.au/u/oscarf/).
 
 # Repository description
 
