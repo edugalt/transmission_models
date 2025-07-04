@@ -21,11 +21,81 @@ from transmission_models.priors import genetic_prior_tree, same_location_prior_t
 
 
 class didelot_unsampled():
-    """docstring for didelots_unsampled"""
+    """
+    Didelot unsampled transmission model.
+
+    This class implements the Didelot et al. (2017) framework for transmission
+    tree inference with unsampled hosts. It provides methods for building
+    transmission networks, computing likelihoods, and performing MCMC sampling.
+
+    The model incorporates three main components:
+    1. Sampling model: Gamma distribution for sampling times
+    2. Offspring model: Negative binomial distribution for offspring number
+    3. Infection model: Gamma distribution for infection times
+
+    Parameters
+    ----------
+    sampling_params : dict
+        Parameters for the sampling model containing:
+        - pi : float, sampling probability
+        - k_samp : float, shape parameter for gamma distribution
+        - theta_samp : float, scale parameter for gamma distribution
+    offspring_params : dict
+        Parameters for the offspring model containing:
+        - r : float, rate of infection
+        - p_inf : float, probability of infection
+    infection_params : dict
+        Parameters for the infection model containing:
+        - k_inf : float, shape parameter for gamma distribution
+        - theta_inf : float, scale parameter for gamma distribution
+
+    Attributes
+    ----------
+    T : networkx.DiGraph
+        The transmission tree.
+    G : networkx.DiGraph
+        The transmission network.
+    host_dict : dict
+        Dictionary mapping host IDs to host objects.
+    log_likelihood : float
+        Current log likelihood of the model.
+    genetic_prior : genetic_prior_tree, optional
+        Prior for genetic data.
+    same_location_prior : same_location_prior_tree, optional
+        Prior for location data.
+
+    References
+    ----------
+    Didelot, X., Gardy, J., & Colijn, C. (2017). Bayesian inference of
+    transmission chains using timing of events, contact and genetic data.
+    PLoS computational biology, 13(4), e1005496.
+    """
 
     def __init__(self, sampling_params, offspring_params, infection_params):
-        # super(didelots_unsampled, self).__init__()
+        """
+        Initialize the Didelot unsampled transmission model.
 
+        Parameters
+        ----------
+        sampling_params : dict
+            Parameters for the sampling model containing:
+            - pi : float, sampling probability
+            - k_samp : float, shape parameter for gamma distribution
+            - theta_samp : float, scale parameter for gamma distribution
+        offspring_params : dict
+            Parameters for the offspring model containing:
+            - r : float, rate of infection
+            - p_inf : float, probability of infection
+        infection_params : dict
+            Parameters for the infection model containing:
+            - k_inf : float, shape parameter for gamma distribution
+            - theta_inf : float, scale parameter for gamma distribution
+
+        Raises
+        ------
+        KeyError
+            If any required parameter is missing from the input dictionaries.
+        """
         # Reading parameters
         try:
             self.pi = sampling_params["pi"]
@@ -101,21 +171,27 @@ class didelot_unsampled():
 
     def samp_t_inf_between(self, h1, h2):
         """
-        Samples a time of infection between two hosts, one being the infector and the other the infected.
-        It use a rejection sampling method to sample the time of infection of the infected host using the chain model from Didelot et al. 2017.
+        Sample a time of infection between two hosts.
 
-        Parameters:
-        -----------
-            h1: host object
-                Infector host.
-            h2: host object
-                Infected host.
+        Uses a rejection sampling method to sample the time of infection of
+        the infected host using the chain model from Didelot et al. 2017.
 
-        Returns:
-        --------
-            t: float
-                Time of infection of the host infected by h1 and the infector of h2.
+        Parameters
+        ----------
+        h1 : host
+            Infector host.
+        h2 : host
+            Infected host.
 
+        Returns
+        -------
+        float
+            Time of infection of the host infected by h1 and the infector of h2.
+
+        Notes
+        -----
+        This method implements the rejection sampling algorithm described in
+        Didelot et al. (2017) for sampling infection times in transmission chains.
         """
         # Dt = abs(h1 - h2)
 
@@ -137,16 +213,19 @@ class didelot_unsampled():
 
     def choose_successors(self, host, k=1):
         """
-        Chooses k unique successors of a given host.
+        Choose k unique successors of a given host.
 
-        Parameters:
-            host: host object
-                Hosts whose successors will be chosen.
-            k: int
-                Number of successors to choose.
+        Parameters
+        ----------
+        host : host
+            Host whose successors will be chosen.
+        k : int, optional
+            Number of successors to choose. Default is 1.
 
-        Returns:
-
+        Returns
+        -------
+        list
+            List of k randomly chosen successors of the host.
         """
         return sample(list(self.successors(host)), k)
 
@@ -174,13 +253,13 @@ class didelot_unsampled():
 
     def get_root_subtrees(self):
         """
-        Retrieves the root subtrees of the transmission tree.
+        Retrieve the root subtrees of the transmission tree.
 
-        This method searches for the first sampled siblings of the root host in the transmission tree
-        and stores them in the `roots_subtrees` attribute.
+        This method searches for the first sampled siblings of the root host
+        in the transmission tree and stores them in the `roots_subtrees` attribute.
 
-        Returns:
-        --------
+        Returns
+        -------
         list
             A list of root subtrees.
         """
@@ -191,10 +270,13 @@ class didelot_unsampled():
         self.unsampled_hosts = [h for h in self.T if not h.sampled and h != self.root_host]
         return self.unsampled_hosts
 
-    def get_sampling_model_likelihood(self,hosts=None,T=None, update=False):
+    def get_sampling_model_likelihood(self, hosts=None, T=None, update=False):
         """
-        Computes the likelihood of the sampling model given a list of hosts. If no list is given, the likelihood of the
-        whole transmission tree is returned.
+        Compute the likelihood of the sampling model.
+
+        Computes the likelihood of the sampling model given a list of hosts.
+        If no list is given, the likelihood of the whole transmission tree
+        is returned.
 
         Parameters
         ----------
@@ -273,20 +355,29 @@ class didelot_unsampled():
 
     def Delta_log_sampling(self, hosts, T_end, T_ini=None):
         """
-        Computes the change in the log likelihood of the sampling model given a list of hosts from T_ini to T_end
+        Compute the change in log-likelihood for the sampling model.
 
-        Parameters:
-        -----------
-            hosts: list of host objects
-            T_end: DiGraph object
-                Transmission tree at the end of the step
-            T_ini: DiGraph object or None
-                Transmission tree at the beginning of the step
-                If None, the transmission tree of the model (self.T) is used
-        Returns:
-        --------
-            Delta_log_likelihood: float
-                Change in the log likelihood of the sampling model
+        Parameters
+        ----------
+        hosts : list
+            List of host objects.
+        T_end : float
+            End time.
+        T_ini : float, optional
+            Initial time. Default is None.
+
+        Returns
+        -------
+        float
+            Change in log-likelihood for the sampling model.
+
+        Notes
+        -----
+        The function operates as follows:
+
+        1. Computes the log-likelihood for the sampling model at T_end.
+        2. If T_ini is provided, subtracts the log-likelihood at T_ini.
+        3. Returns the difference.
         """
         L_end = self.get_sampling_model_likelihood(hosts, T_end)
 
@@ -359,21 +450,29 @@ class didelot_unsampled():
 
     def Delta_log_offspring(self, hosts, T_end, T_ini=None):
         """
-        Computes the change in the log likelihood of the offspring model given a list of hosts from T_ini to T_end
+        Compute the change in log-likelihood for the offspring model.
 
-        Parameters:
-        -----------
-            hosts: list of host objects
-            T_end: DiGraph object
-                Transmission tree at the end of the step
-            T_ini: DiGraph object
-                Transmission tree at the beginning of the step
-                If None, the transmission tree of the model (self.T) is used
+        Parameters
+        ----------
+        hosts : list
+            List of host objects.
+        T_end : float
+            End time.
+        T_ini : float, optional
+            Initial time. Default is None.
 
-        Returns:
-        --------
-            Delta_log_likelihood: float
-                Change in the log likelihood of the offspring model
+        Returns
+        -------
+        float
+            Change in log-likelihood for the offspring model.
+
+        Notes
+        -----
+        The function operates as follows:
+
+        1. Computes the log-likelihood for the offspring model at T_end.
+        2. If T_ini is provided, subtracts the log-likelihood at T_ini.
+        3. Returns the difference.
         """
         L_end = self.get_offspring_model_likelihood(hosts, T_end)
 
@@ -469,21 +568,29 @@ class didelot_unsampled():
 
     def Delta_log_infection(self, hosts, T_end, T_ini=None):
         """
-        Computes the change in the log likelihood of the infection model given a list of hosts from T_ini to T_end
+        Compute the change in log-likelihood for the infection model.
 
-        Parameters:
-        -----------
-            hosts: list of host objects
-            T_end: DiGraph object
-                Transmission tree at the end of the step
-            T_ini: DiGraph object
-                Transmission tree at the beginning of the step
-                If None, the transmission tree of the model (self.T) is used
+        Parameters
+        ----------
+        hosts : list
+            List of host objects.
+        T_end : float
+            End time.
+        T_ini : float, optional
+            Initial time. Default is None.
 
-        Returns:
-        --------
-            Delta_log_likelihood: float
-                Change in the log likelihood of the infection model
+        Returns
+        -------
+        float
+            Change in log-likelihood for the infection model.
+
+        Notes
+        -----
+        The function operates as follows:
+
+        1. Computes the log-likelihood for the infection model at T_end.
+        2. If T_ini is provided, subtracts the log-likelihood at T_ini.
+        3. Returns the difference.
         """
         if T_ini is None:
             T_ini = self.T
@@ -531,21 +638,29 @@ class didelot_unsampled():
 
     def Delta_log_likelihood_host(self, hosts, T_end, T_ini=None):
         """
-        Computes the change in the log likelihood of a host given two transmissions trees: from T_ini to T_end
+        Compute the change in log-likelihood for a host.
 
-        Parameters:
-        -----------
-            hosts: list of host objects
-            T_end: DiGraph object
-                Transmission tree at the end of the step
-            T_ini: DiGraph object
-                Transmission tree at the beginning of the step
-                If None, the transmission tree of the model (self.T) is used
+        Parameters
+        ----------
+        hosts : list
+            List of host objects.
+        T_end : float
+            End time.
+        T_ini : float, optional
+            Initial time. Default is None.
 
-        Returns:
-        --------
-            Delta_log_likelihood: float
-                Change in the log likelihood of the host
+        Returns
+        -------
+        float
+            Change in log-likelihood for the host.
+
+        Notes
+        -----
+        The function operates as follows:
+
+        1. Computes the log-likelihood for the host at T_end.
+        2. If T_ini is provided, subtracts the log-likelihood at T_ini.
+        3. Returns the difference.
         """
         # print(hosts)
         L_end = self.log_likelihood_host(hosts, T_end)

@@ -1,3 +1,31 @@
+"""
+Utilities Module.
+
+This module contains utility functions for tree manipulation, visualization,
+and data conversion in transmission network analysis.
+
+Main Functions
+--------------
+tree_to_newick : Convert transmission tree to Newick format
+search_firsts_sampled_siblings : Find first sampled siblings in tree
+search_first_sampled_parent : Find first sampled parent in tree
+plot_transmision_network : Visualize transmission network
+tree_to_json : Convert tree to JSON format
+json_to_tree : Convert JSON to tree format
+
+Visualization
+-------------
+hierarchy_pos : Generate hierarchical layout positions
+hierarchy_pos_times : Generate time-based hierarchical layout
+plot_transmision_network : Plot transmission network with various options
+
+Data Conversion
+---------------
+tree_to_newick : Convert to Newick format for phylogenetic software
+tree_to_json : Convert to JSON for data storage
+json_to_tree : Convert from JSON back to tree structure
+"""
+
 # from transmission_models.models import *
 from transmission_models.models.didelot_unsampled import *
 # from transmission_models.utils import *
@@ -54,17 +82,17 @@ def search_firsts_sampled_siblings(host, T):
     """
     Search the firsts sampled siblings of a host in the transmission tree.
 
-    Parameters:
-    -----------
-        host: Host
-            The host to search the siblings from
-        T: nx.DiGraph
-            The transmission tree where the hot belongs to.
-    Returns:
-    --------
-        sampled_hosts: list of Hosts
-            The list of the firsts sampled siblings of the host
+    Parameters
+    ----------
+    host : Host
+        The host to search the siblings from.
+    T : nx.DiGraph
+        The transmission tree where the host belongs to.
 
+    Returns
+    -------
+    list
+        The list of the firsts sampled siblings of the host.
     """
     sampled_hosts = []
     for h in T.successors(host):
@@ -80,18 +108,20 @@ def search_first_sampled_parent(host, T, root):
     """
     Search the first sampled parent of a host in the transmission tree.
 
-    Parameters:
-    -----------
-        host: Host
-            The host to search the parent from. If the host is the root of the tree, it returns None
-        T: nx.DiGraph
-            The transmission tree where the hot belongs to.
-        root: Host
-            The root of the transmission tree
-    Returns:
-    --------
-        parent: Host
-            The first sampled parent of the host
+    Parameters
+    ----------
+    host : Host
+        The host to search the parent from. If the host is the root of the tree,
+        it returns None.
+    T : nx.DiGraph
+        The transmission tree where the host belongs to.
+    root : Host
+        The root of the transmission tree.
+
+    Returns
+    -------
+    Host or None
+        The first sampled parent of the host, or None if host is the root.
     """
 
     if host == root:
@@ -104,49 +134,57 @@ def search_first_sampled_parent(host, T, root):
     else:
         return parent
 
-def Delta_log_gamma(Dt_ini,Dt_end,k,theta):
+def Delta_log_gamma(Dt_ini, Dt_end, k, theta):
     """
     Compute the log likelihood of the gamma distribution for the time between two events.
 
-    Parameters:
-    -----------
-        Dt_ini: float
-            Initial time
-        Dt_end: float
-            End time
-    Returns:
-    --------
-        float
-            Difference of the log likelihood of the gamma distribution
+    Parameters
+    ----------
+    Dt_ini : float
+        Initial time.
+    Dt_end : float
+        End time.
+    k : float
+        Shape parameter of the gamma distribution.
+    theta : float
+        Scale parameter of the gamma distribution.
+
+    Returns
+    -------
+    float
+        Difference of the log likelihood of the gamma distribution.
     """
     return (k-1)*np.log(Dt_end/Dt_ini) - ((Dt_end-Dt_ini)/theta)
 
 def hierarchy_pos(G, root=None, width=1., vert_gap=0.2, vert_loc=0, xcenter=0.5):
-    '''
-    From Joel's answer at https://stackoverflow.com/a/29597209/2966723.
-    Licensed under Creative Commons Attribution-Share Alike
+    """
+    Compute hierarchical layout positions for a tree graph.
 
-    If the graph is a tree this will return the positions to plot this in a
-    hierarchical layout.
+    Parameters
+    ----------
+    G : networkx.Graph
+        The graph (must be a tree).
+    root : node, optional
+        The root node of the current branch. If None, the root will be found automatically.
+    width : float, optional
+        Horizontal space allocated for this branch. Default is 1.0.
+    vert_gap : float, optional
+        Gap between levels of hierarchy. Default is 0.2.
+    vert_loc : float, optional
+        Vertical location of root. Default is 0.
+    xcenter : float, optional
+        Horizontal location of root. Default is 0.5.
 
-    G: the graph (must be a tree)
+    Returns
+    -------
+    dict
+        A dictionary of positions keyed by node.
 
-    root: the root node of current branch
-    - if the tree is directed and this is not given,
-      the root will be found and used
-    - if the tree is directed and this is given, then
-      the positions will be just for the descendants of this node.
-    - if the tree is undirected and not given,
-      then a random choice will be used.
-
-    width: horizontal space allocated for this branch - avoids overlap with other branches
-
-    vert_gap: gap between levels of hierarchy
-
-    vert_loc: vertical location of root
-
-    xcenter: horizontal location of root
-    '''
+    Notes
+    -----
+    This function is adapted from Joel's answer at https://stackoverflow.com/a/29597209/2966723.
+    Licensed under Creative Commons Attribution-Share Alike.
+    """
     if not nx.is_tree(G):
         raise TypeError('cannot use hierarchy_pos on a graph that is not a tree')
 
@@ -186,31 +224,34 @@ def hierarchy_pos(G, root=None, width=1., vert_gap=0.2, vert_loc=0, xcenter=0.5)
 
 
 def hierarchy_pos_times(G, root=None, width=1., vert_gap=0.2, vert_loc=0, xcenter=0.5):
-    '''
-    From Joel's answer at https://stackoverflow.com/a/29597209/2966723.
-    Licensed under Creative Commons Attribution-Share Alike
+    """
+    Compute hierarchical layout positions for a tree graph, using time as vertical position.
 
-    If the graph is a tree this will return the positions to plot this in a
-    hierarchical layout.
+    Parameters
+    ----------
+    G : networkx.Graph
+        The graph (must be a tree).
+    root : node, optional
+        The root node of the current branch. If None, the root will be found automatically.
+    width : float, optional
+        Horizontal space allocated for this branch. Default is 1.0.
+    vert_gap : float, optional
+        Gap between levels of hierarchy. Default is 0.2.
+    vert_loc : float, optional
+        Vertical location of root. Default is 0.
+    xcenter : float, optional
+        Horizontal location of root. Default is 0.5.
 
-    G: the graph (must be a tree)
+    Returns
+    -------
+    dict
+        A dictionary of positions keyed by node.
 
-    root: the root node of current branch
-    - if the tree is directed and this is not given,
-      the root will be found and used
-    - if the tree is directed and this is given, then
-      the positions will be just for the descendants of this node.
-    - if the tree is undirected and not given,
-      then a random choice will be used.
-
-    width: horizontal space allocated for this branch - avoids overlap with other branches
-
-    vert_gap: gap between levels of hierarchy
-
-    vert_loc: vertical location of root
-
-    xcenter: horizontal location of root
-    '''
+    Notes
+    -----
+    This function is adapted from Joel's answer at https://stackoverflow.com/a/29597209/2966723.
+    Licensed under Creative Commons Attribution-Share Alike.
+    """
     if not nx.is_tree(G):
         raise TypeError('cannot use hierarchy_pos on a graph that is not a tree')
 
@@ -323,21 +364,38 @@ def tree_to_dict(model, h):
 
 def cast_types(value, types_map):
     """
-    recurse into value and cast any np.int64 to int
+    Recursively cast types in a nested data structure.
 
-    fix: TypeError: Object of type int64 is not JSON serializable
+    This function recursively traverses a nested data structure (dict, list)
+    and casts any values that match the types in types_map to their target types.
+    Useful for fixing JSON serialization issues with numpy types.
 
-    import numpy as np
-    import json
-    data = [np.int64(123)]
-    data = cast_types(data, [
-        (np.int64, int),
-        (np.float64, float),
-    ])
-    data_json = json.dumps(data)
-    data_json == "[123]"
+    Parameters
+    ----------
+    value : any
+        The value to cast. Can be a dict, list, or any other type.
+    types_map : list of tuples
+        List of (from_type, to_type) tuples specifying type conversions.
 
-    https://stackoverflow.com/a/75552723/10440128
+    Returns
+    -------
+    any
+        The value with types cast according to types_map.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import json
+    >>> data = [np.int64(123)]
+    >>> data = cast_types(data, [(np.int64, int), (np.float64, float)])
+    >>> data_json = json.dumps(data)
+    >>> data_json == "[123]"
+    True
+
+    Notes
+    -----
+    This function is useful for fixing "TypeError: Object of type int64 is not
+    JSON serializable" errors when working with numpy arrays and JSON.
     """
     if isinstance(value, dict):
         # cast types of dict keys and values
