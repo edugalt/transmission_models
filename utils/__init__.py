@@ -283,7 +283,7 @@ def hierarchy_pos_times(G, root=None, width=1., vert_gap=0.2, vert_loc=0, xcente
             for child in children:
                 nextx += dx
                 pos = _hierarchy_pos(G, child, width=dx, vert_gap=vert_gap,
-                                     vert_loc=(child.t_inf), xcenter=nextx,
+                                     vert_loc=(pos[root][1]+(child.t_inf-root.t_inf)), xcenter=nextx,
                                      pos=pos, parent=root)
         return pos
 
