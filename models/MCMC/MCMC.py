@@ -6,18 +6,85 @@ from transmission_models.models.topology_movements import tree_slicing_step
 
 
 class MCMC():
-    def __init__(self, model, P_rewire=1/3, P_add_remove=1/3, P_t_shift=1/3, P_add=0.5, P_rewire_add=0.5,P_offspring_add=0.5,P_to_offspring=0.5):
-        """
-        Initializes a new instance of the MCMC class.
+    """
+    Markov Chain Monte Carlo sampler for transmission tree inference.
 
-        Parameters:
-        - model (transmission_tree): The transmission tree model to sample from.
-        - P_rewire (float): The probability of rewiring a transmission tree.
-        - P_add_remove (float): The probability of adding or removing an unsampled host in the transmission tree.
-        - P_t_shift (float): The probability of shifting the infection time of the host in the transmission tree.
-        - P_add (float): The probability of adding a new host to the transmission tree once the add/remove have been proposed.
-        - P_rewire_add (float): The probability of rewiring the new unsampled host once the add have been proposed.
-        - P_offspring_add (float): The probability that the new unsampled host is an offspring once the add and rewire have been proposed.
+    This class implements MCMC sampling algorithms for transmission network
+    inference using various proposal mechanisms.
+
+    Parameters
+    ----------
+    model : didelot_unsampled
+        The transmission tree model to sample from.
+    P_rewire : float, optional
+        The probability of rewiring a transmission tree. Default is 1/3.
+    P_add_remove : float, optional
+        The probability of adding or removing an unsampled host in the
+        transmission tree. Default is 1/3.
+    P_t_shift : float, optional
+        The probability of shifting the infection time of the host in the
+        transmission tree. Default is 1/3.
+    P_add : float, optional
+        The probability of adding a new host to the transmission tree once
+        the add/remove have been proposed. Default is 0.5.
+    P_rewire_add : float, optional
+        The probability of rewiring the new unsampled host once the add
+        have been proposed. Default is 0.5.
+    P_offspring_add : float, optional
+        The probability that the new unsampled host is an offspring once
+        the add and rewire have been proposed. Default is 0.5.
+    P_to_offspring : float, optional
+        The probability of moving to offspring model during rewiring.
+        Default is 0.5.
+
+    Attributes
+    ----------
+    model : didelot_unsampled
+        The transmission model being sampled.
+    P_rewire : float
+        Probability of rewiring moves.
+    P_add_remove : float
+        Probability of add/remove moves.
+    P_t_shift : float
+        Probability of time shift moves.
+    P_add : float
+        Probability of adding vs removing hosts.
+    P_rewire_add : float
+        Probability of rewiring added hosts.
+    P_offspring_add : float
+        Probability of offspring vs chain model for added hosts.
+    P_to_offspring : float
+        Probability of moving to offspring model.
+    """
+
+    def __init__(self, model, P_rewire=1/3, P_add_remove=1/3, P_t_shift=1/3, P_add=0.5, P_rewire_add=0.5, P_offspring_add=0.5, P_to_offspring=0.5):
+        """
+        Initialize the MCMC sampler.
+
+        Parameters
+        ----------
+        model : didelot_unsampled
+            The transmission tree model to sample from.
+        P_rewire : float, optional
+            The probability of rewiring a transmission tree. Default is 1/3.
+        P_add_remove : float, optional
+            The probability of adding or removing an unsampled host in the
+            transmission tree. Default is 1/3.
+        P_t_shift : float, optional
+            The probability of shifting the infection time of the host in the
+            transmission tree. Default is 1/3.
+        P_add : float, optional
+            The probability of adding a new host to the transmission tree once
+            the add/remove have been proposed. Default is 0.5.
+        P_rewire_add : float, optional
+            The probability of rewiring the new unsampled host once the add
+            have been proposed. Default is 0.5.
+        P_offspring_add : float, optional
+            The probability that the new unsampled host is an offspring once
+            the add and rewire have been proposed. Default is 0.5.
+        P_to_offspring : float, optional
+            The probability of moving to offspring model during rewiring.
+            Default is 0.5.
         """
 
         self.model = model
@@ -29,24 +96,40 @@ class MCMC():
         self.P_offspring_add = P_offspring_add
         self.P_to_offspring = P_to_offspring
 
-    def MCMC_iteration(self,verbose=False):
+    def MCMC_iteration(self, verbose=False):
         """
-        Performs an MCMC iteration on the transmission tree model.
+        Perform an MCMC iteration on the transmission tree model.
 
-        Parameters:
-        -----------
-            verbose: bool
-                Whether to print the progress of the MCMC iteration.
+        Parameters
+        ----------
+        verbose : bool, optional
+            Whether to print the progress of the MCMC iteration. Default is False.
 
-        Returns:
-        - move (str): The type of move proposed.
-        - gg (float): The ratio of proposals probabilities.
-        - pp (float): The ratio of posteriors probabilities.
-        - P (float): The Acceptance probability.
-        - accepted (bool): Whether the move was accepted.
-        - DL (float): The difference in log likelihood.
-        - selected_host (Host): The host selected for the move.
+        Returns
+        -------
+        tuple
+            A tuple containing:
 
+            - move : str
+                The type of move proposed ('rewire', 'add_remove', or 'time_shift').
+            - gg : float
+                The ratio of proposal probabilities.
+            - pp : float
+                The ratio of posterior probabilities.
+            - P : float
+                The acceptance probability.
+            - accepted : bool
+                Whether the move was accepted.
+            - DL : float
+                The difference in log likelihood.
+
+        Notes
+        -----
+        The function operates as follows:
+
+        1. Selects a move type at random.
+        2. Performs the move and computes acceptance probability.
+        3. Returns move details and acceptance status.
         """
 
         self.model.get_N_candidates_to_chain()
