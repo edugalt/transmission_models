@@ -1,0 +1,16 @@
+numpy
+pandas
+scipy
+matplotlib
+seaborn
+
+[dev]
+pytest
+pytest-cov
+black
+flake8
+mypy
+
+[docs]
+sphinx
+sphinx-rtd-theme

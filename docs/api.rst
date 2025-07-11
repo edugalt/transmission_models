@@ -7,7 +7,7 @@ Classes
 Host
 ~~~~
 
-.. automodule:: host
+.. automodule:: transmission_models.classes.host
    :members:
    :undoc-members:
    :show-inheritance:
@@ -16,7 +16,7 @@ Host
 Didelot Unsampled
 ~~~~~~~~~~~~~~~~~
 
-.. autoclass:: models.didelot_unsampled.didelot_unsampled
+.. autoclass:: transmission_models.classes.didelot_unsampled.didelot_unsampled
    :members:
    :undoc-members:
    :show-inheritance:
@@ -83,7 +83,7 @@ Didelot Unsampled
 MCMC 
 ~~~~
 
-.. automodule:: models.MCMC.MCMC
+.. automodule:: transmission_models.classes.mcmc.mcmc
    :members:
    :undoc-members:
    :show-inheritance:
@@ -92,13 +92,13 @@ MCMC
 Priors
 ~~~~~~
 
-.. automodule:: priors.genetic_prior
+.. automodule:: transmission_models.classes.genetic_prior
    :members:
    :undoc-members:
    :show-inheritance:
    :exclude-members: choice,randint,random,sample,choices,GAMMA,nbinom,gamma,binom,expon,poisson,np,utils,combinations,nx
 
-.. automodule:: priors.location_prior
+.. automodule:: transmission_models.classes.location_prior
    :members:
    :undoc-members:
    :show-inheritance:
@@ -110,15 +110,21 @@ Functions
 Core Functions
 ~~~~~~~~~~~~~~
 
-.. automodule:: __init__
+.. automodule:: transmission_models
    :members:
    :undoc-members:
    :show-inheritance:
 
-Model Functions
-~~~~~~~~~~~~~~~
+Utility Functions
+~~~~~~~~~~~~~~~~~
 
-.. automodule:: models.topology_movements
+.. automodule:: transmission_models.utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :exclude-members: sc,st,np,json
+
+.. automodule:: transmission_models.utils.topology_movements
    :members:
    :undoc-members:
    :show-inheritance:
@@ -127,28 +133,19 @@ Model Functions
 Prior Functions
 ~~~~~~~~~~~~~~~
 
-.. automodule:: priors.partial_sampled_utils
+.. automodule:: transmission_models.classes.partial_sampled_utils
    :members:
    :undoc-members:
    :show-inheritance:
    :exclude-members: choice,randint,random,sample,choices,GAMMA,nbinom,gamma,binom,expon,poisson,np,utils,combinations,nx
 
-Utility Functions
-~~~~~~~~~~~~~~~~~
-
-.. automodule:: utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :exclude-members: sc,st,np,json
-
 Module Documentation
 --------------------
 
-Models Module
+Classes Module
 ~~~~~~~~~~~~~
 
-.. automodule:: models
+.. automodule:: transmission_models.classes
    :members:
    :undoc-members:
    :show-inheritance:
@@ -156,15 +153,15 @@ Models Module
 MCMC Module
 ~~~~~~~~~~~
 
-.. automodule:: models.MCMC
+.. automodule:: transmission_models.classes.mcmc
    :members:
    :undoc-members:
    :show-inheritance:
 
-Priors Module
-~~~~~~~~~~~~~
+Utils Module
+~~~~~~~~~~~
 
-.. automodule:: priors
+.. automodule:: transmission_models.utils
    :members:
    :undoc-members:
    :show-inheritance: 

@@ -3,10 +3,10 @@ from itertools import combinations
 from math import factorial
 
 from transmission_models import *
-import transmission_models.utils as utils
-from transmission_models.host import *
+from transmission_models import utils
+from transmission_models.classes.host import *
 # from transmission_models.utils import tree_to_newick
-from transmission_models.models.topology_movements import *
+from transmission_models.utils.topology_movements import *
 
 from random import random, randint,choice
 from scipy.stats import nbinom, gamma, binom, expon, norm
@@ -14,7 +14,8 @@ from scipy.special import gamma as GAMMA
 import networkx as nx
 from networkx.exception import NetworkXError
 
-from transmission_models.priors import genetic_prior_tree, same_location_prior_tree
+from transmission_models.classes.genetic_prior import genetic_prior_tree
+from transmission_models.classes.location_prior import same_location_prior_tree
 
 
 # from ..utils import tree_to_newick
