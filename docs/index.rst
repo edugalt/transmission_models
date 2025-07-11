@@ -22,12 +22,49 @@ This library provides tools for Bayesian inference of transmission chains using 
 * Perform Bayesian inference using MCMC sampling
 * Visualize transmission networks and phylogenetic relationships
 
+Installation
+-----------
+
+Prerequisites
+~~~~~~~~~~~~
+
+This package requires Python 3.8 or higher and the following dependencies:
+
+* numpy
+* pandas
+* scipy
+* matplotlib
+* seaborn
+
+Installing the Package
+~~~~~~~~~~~~~~~~~~~~~
+
+To install the package in editable mode for development:
+
+.. code-block:: bash
+
+   git clone https://github.com/oscarcapote/transmission_models.git
+   cd transmission_models
+   pip install -e .
+
+This will install the package in editable mode, meaning any changes you make to the source code will be immediately available without reinstalling.
+
+Verifying Installation
+^^^^^^^^^^^^^^^^^^^^^
+
+After installation, you can verify the package is working correctly:
+
+.. code-block:: python
+
+   from transmission_models import *
+   print("Transmission Models package installed successfully!")
+
 Features
 --------
 
 * **Transmission Network Modeling**: Build and analyze transmission networks with unsampled hosts
-* **Phylogenetic Integration**: Incorporate genetic sequence data and evolution models
-* **MCMC Sampling**: Bayesian inference using Markov Chain Monte Carlo algorithms
+* **Phylogenetic Integration**: Incorporate genetic sequence data.
+* **MCMC Sampling**: Bayesian inference using Markov Chain Monte Carlo methods.
 * **Prior Distributions**: Flexible prior specification for genetic and location data
 * **Visualization**: Tools for plotting transmission networks and phylogenetic trees
 * **High-performance**: Optimized algorithms for large-scale transmission analysis

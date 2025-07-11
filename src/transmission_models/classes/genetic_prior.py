@@ -2,9 +2,9 @@
 from random import choice,randint,random,sample,choices
 from scipy.special import gamma as GAMMA
 from scipy.stats import nbinom, gamma, binom, expon, poisson
-from transmission_models.priors.partial_sampled_utils import *
+from .partial_sampled_utils import *
 import numpy as np
-import transmission_models.utils as utils
+from transmission_models import utils
 from itertools import combinations
 import networkx as nx
 
@@ -510,7 +510,7 @@ class genetic_prior_tree():
         # Parent
         if host != self.model.root_host:
             # Ini
-            parent = genetic_prior_tree.search_first_sampled_parent(host, T_ini, model.root_host)
+            parent = genetic_prior_tree.search_first_sampled_parent(host, T_ini, self.model.root_host)
             if parent is None:
                 D_time_ini = 0
                 D_gen_ini = 0
@@ -518,11 +518,11 @@ class genetic_prior_tree():
             else:
                 D_time_ini = host.t_sample - parent.t_sample
                 D_gen_ini = self.distance_matrix[host.index, parent.index]
-                LL_ini = np.log(p.prior_dist.pmf(D_time_ini * D_gen_ini))
+                LL_ini = np.log(self.prior_dist.pmf(D_time_ini * D_gen_ini))
             # print("parent ini",D_time_ini,D_gen_ini,LL_ini)
 
             # End
-            parent = genetic_prior_tree.search_first_sampled_parent(host, T_end, model.root_host)
+            parent = genetic_prior_tree.search_first_sampled_parent(host, T_end, self.model.root_host)
             if parent is None:
                 D_time_end = 0
                 D_gen_end = 0
@@ -530,7 +530,7 @@ class genetic_prior_tree():
             else:
                 D_time_end = host.t_sample - parent.t_sample
                 D_gen_end = self.distance_matrix[host.index, parent.index]
-                LL_end = np.log(p.prior_dist.pmf(D_time_end * D_gen_end))
+                LL_end = np.log(self.prior_dist.pmf(D_time_end * D_gen_end))
 
             # print("parent end",D_time_end,D_gen_end,LL_end)
             Delta += LL_end - LL_ini
@@ -541,14 +541,14 @@ class genetic_prior_tree():
         for h in siblings:
             D_time = h.t_sample - host.t_sample
             D_gen = self.distance_matrix[host.index, h.index]
-            LL -= np.log(p.prior_dist.pmf(D_time * D_gen))
+            LL -= np.log(self.prior_dist.pmf(D_time * D_gen))
             # print("sibling ini",D_time,D_gen,LL,p.prior_dist.pmf(D_time*D_gen))
 
         siblings = genetic_prior_tree.search_firsts_sampled_siblings(host, T_end, self.distance_matrix)
         for h in siblings:
             D_time = h.t_sample - host.t_sample
             D_gen = self.distance_matrix[host.index, h.index]
-            LL += np.log(p.prior_dist.pmf(D_time * D_gen))
+            LL += np.log(self.prior_dist.pmf(D_time * D_gen))
 
         Delta += LL
 

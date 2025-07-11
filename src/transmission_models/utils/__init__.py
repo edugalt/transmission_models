@@ -12,6 +12,7 @@ search_first_sampled_parent : Find first sampled parent in tree
 plot_transmision_network : Visualize transmission network
 tree_to_json : Convert tree to JSON format
 json_to_tree : Convert JSON to tree format
+tree_slicing_step : Tree topology manipulation functions
 
 Visualization
 -------------
@@ -26,10 +27,13 @@ tree_to_json : Convert to JSON for data storage
 json_to_tree : Convert from JSON back to tree structure
 """
 
-# from transmission_models.models import *
-from transmission_models.models.didelot_unsampled import *
+# from transmission_models.classes import *
+from transmission_models.classes.didelot_unsampled import *
 # from transmission_models.utils import *
-from transmission_models import host
+from transmission_models.classes import host
+
+# Import topology movement functions
+from .topology_movements import *
 
 import scipy.special as sc
 import scipy.stats as st
@@ -283,7 +287,7 @@ def hierarchy_pos_times(G, root=None, width=1., vert_gap=0.2, vert_loc=0, xcente
             for child in children:
                 nextx += dx
                 pos = _hierarchy_pos(G, child, width=dx, vert_gap=vert_gap,
-                                     vert_loc=(child.t_inf), xcenter=nextx,
+                                     vert_loc=(pos[root][1]+(child.t_inf-root.t_inf)), xcenter=nextx,
                                      pos=pos, parent=root)
         return pos
 
