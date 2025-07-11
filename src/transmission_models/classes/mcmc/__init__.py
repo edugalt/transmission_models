@@ -15,10 +15,10 @@ of transmission trees using various proposal mechanisms including:
 - Infection time updates
 """
 
-# from transmission_models.models import *
-from transmission_models.models.didelot_unsampled import *
-from transmission_models.priors.genetic_prior import *
-
+# from transmission_models.classes import *
+from transmission_models.classes.didelot_unsampled import *
+from transmission_models.classes.genetic_prior import *
+from .mcmc import MCMC
 
 import scipy.special as sc
 import scipy.stats as st

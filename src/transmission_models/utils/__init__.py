@@ -12,6 +12,7 @@ search_first_sampled_parent : Find first sampled parent in tree
 plot_transmision_network : Visualize transmission network
 tree_to_json : Convert tree to JSON format
 json_to_tree : Convert JSON to tree format
+tree_slicing_step : Tree topology manipulation functions
 
 Visualization
 -------------
@@ -26,10 +27,13 @@ tree_to_json : Convert to JSON for data storage
 json_to_tree : Convert from JSON back to tree structure
 """
 
-# from transmission_models.models import *
-from transmission_models.models.didelot_unsampled import *
+# from transmission_models.classes import *
+from transmission_models.classes.didelot_unsampled import *
 # from transmission_models.utils import *
-from transmission_models import host
+from transmission_models.classes import host
+
+# Import topology movement functions
+from .topology_movements import *
 
 import scipy.special as sc
 import scipy.stats as st

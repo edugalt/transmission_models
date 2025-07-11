@@ -2,7 +2,7 @@ from random import choice,randint,random,sample,choices
 from scipy.special import gamma as GAMMA
 from scipy.stats import nbinom, gamma, binom, expon, poisson
 import numpy as np
-import transmission_models.utils as utils
+from transmission_models import utils
 from itertools import combinations
 import networkx as nx
 

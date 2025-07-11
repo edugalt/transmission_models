@@ -1,8 +1,8 @@
 import numpy as np
-import transmission_models.utils as utils
+from transmission_models import utils
 from transmission_models.utils import hierarchy_pos,hierarchy_pos_times,plot_transmision_network,tree_to_newick,search_firsts_sampled_siblings
-from transmission_models.models import didelot_unsampled as du
-from transmission_models.models.topology_movements import tree_slicing_step
+from transmission_models.classes import didelot_unsampled as du
+from transmission_models.utils.topology_movements import tree_slicing_step
 
 
 class MCMC():

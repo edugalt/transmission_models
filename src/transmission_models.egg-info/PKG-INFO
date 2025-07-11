@@ -1,0 +1,61 @@
+Metadata-Version: 2.1
+Name: transmission_models
+Version: 0.1.0
+Summary: A Python package for transmission modeling and phylogenetic analysis
+Author: Your Name
+Author-email: Your Name <your.email@example.com>
+License: MIT
+Project-URL: Homepage, https://github.com/yourusername/transmission_models
+Project-URL: Repository, https://github.com/yourusername/transmission_models
+Project-URL: Documentation, https://transmission-models.readthedocs.io/
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Topic :: Scientific/Engineering :: Bio-Informatics
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: numpy
+Requires-Dist: pandas
+Requires-Dist: scipy
+Requires-Dist: matplotlib
+Requires-Dist: seaborn
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: pytest-cov; extra == "dev"
+Requires-Dist: black; extra == "dev"
+Requires-Dist: flake8; extra == "dev"
+Requires-Dist: mypy; extra == "dev"
+Provides-Extra: docs
+Requires-Dist: sphinx; extra == "docs"
+Requires-Dist: sphinx-rtd-theme; extra == "docs"
+
+# Transmission Model Library
+
+This repository contains the codes and data used in the manuscript "Inference of epidemic networks: the effect of different data
+types", by [Oscar Fajardo-Fontiveros](https://www.maths.usyd.edu.au/u/oscarf/), [Carl J. E. Suster](https://www.sydney.edu.au/medicine-health/about/our-people/academic-staff/carl.suster.html), and [Eduardo G. Altmann](https://www.maths.usyd.edu.au/u/ega), developed at The University
+of Sydney, Sydney, NSW, Australia. The code in this repository was created by [Oscar Fajardo-Fontiveros](https://www.maths.usyd.edu.au/u/oscarf/).
+
+# Repository description
+
+The Jupyter Notebook [Example.ipynb](https://github.com/edugalt/transmission_models/blob/main/Example.ipynb) contains an illustration of the usage of this library. 
+
+- data/
+
+Contains the data used in the manuscript (49 cases of positive tests in NSW, from mid 2021). Information about the time, genetic distance, and location of each case is provided in separate files.
+
+- models/
+
+Contains the code that implements the transmission model and the MCMC used to sample transmission trees.
+
+- priors/
+
+Contains the code that implements the genetic and location models.
+
+- utils/
+
+Contains additional functions used in the library.
