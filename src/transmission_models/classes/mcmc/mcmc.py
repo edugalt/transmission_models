@@ -88,6 +88,7 @@ class MCMC():
         """
 
         self.model = model
+        
         self.P_rewire = P_rewire
         self.P_add_remove = P_add_remove
         self.P_t_shift = P_t_shift
