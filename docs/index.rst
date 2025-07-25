@@ -9,7 +9,25 @@ A Python library for modeling viral transmission networks using phylogenetic and
    :maxdepth: 5
    :caption: Contents:
 
-   api
+   classes
+   functions
+   tree_visualization
+
+
+Classes
+=======
+
+See the :doc:`classes` page for detailed class documentation.
+
+Functions
+=========
+
+See the :doc:`functions` page for a complete list of functions and their usage.
+
+Tree Visualization
+==================
+
+Interactive visualization of transmission trees is supported via a JavaScript library. See the :doc:`tree_visualization` for full documentation, usage examples, and API reference.
 
 Overview
 --------
