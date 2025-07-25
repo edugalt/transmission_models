@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tree Visualization Test Suite</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://www.maths.usyd.edu.au/u/oscarf/tree_layout/tree_plot.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .test-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .test-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .test-summary {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .test-controls {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+            margin-bottom: 20px;
+        }
+        
+        .control-group {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .control-group label {
+            font-weight: bold;
+            min-width: 200px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .btn-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .test-results {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .test-results h3 {
+            margin-top: 0;
+            color: #155724;
+        }
+        
+        .test-item {
+            margin: 5px 0;
+            padding: 8px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #dee2e6;
+        }
+        
+        .test-item.pass {
+            background-color: #d4edda;
+            border-left-color: #28a745;
+        }
+        
+        .test-item.fail {
+            background-color: #f8d7da;
+            border-left-color: #dc3545;
+        }
+        
+        .test-item.warning {
+            background-color: #fff3cd;
+            border-left-color: #ffc107;
+        }
+        
+        .model-tests {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .model-test {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .model-header {
+            padding: 10px;
+            font-weight: bold;
+            color: white;
+            text-align: center;
+        }
+        
+        .model-header.simple {
+            background-color: #007bff;
+        }
+        
+        .model-header.genetic {
+            background-color: #28a745;
+        }
+        
+        .model-header.location {
+            background-color: #fd7e14;
+        }
+        
+        .model-content {
+            padding: 15px;
+        }
+        
+        .model-info {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .model-visualization {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .tree-container {
+            height: 300px;
+            padding: 10px;
+            position: relative;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .stat-card.pass {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        
+        .stat-card.fail {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        
+        .stat-card.warning {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+        }
+        
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+            max-height: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🌳 Tree Visualization Test Suite</h1>
+            <p>Comprehensive testing of the Tree Visualization Library with all model types</p>
+        </div>
+        
+        <div class="test-summary">
+            <h3>Test Suite Overview</h3>
+            <p>This test suite validates the tree visualization library with three different model types:</p>
+            <ul>
+                <li><strong>Simple Model:</strong> Basic transmission tree without additional priors</li>
+                <li><strong>Genetic Model:</strong> Tree with genetic distance information and genetic prior</li>
+                <li><strong>Location Model:</strong> Tree with geographic location data and spatial constraints</li>
+            </ul>
+        </div>
+        
+        <div class="test-controls">
+            <h3>Test Controls</h3>
+            <div class="control-group">
+                <button class="btn-primary" onclick="runAllTests()">Run All Tests</button>
+                <button class="btn-success" onclick="runIndividualTests()">Run Individual Tests</button>
+                <button class="btn-warning" onclick="clearAllResults()">Clear Results</button>
+                <button class="btn-danger" onclick="exportResults()">Export Results</button>
+            </div>
+        </div>
+        
+        <div class="summary-stats" id="summaryStats" style="display: none;">
+            <div class="stat-card" id="totalTests">
+                <div class="stat-number">0</div>
+                <div class="stat-label">Total Tests</div>
+            </div>
+            <div class="stat-card pass" id="passedTests">
+                <div class="stat-number">0</div>
+                <div class="stat-label">Passed</div>
+            </div>
+            <div class="stat-card fail" id="failedTests">
+                <div class="stat-number">0</div>
+                <div class="stat-label">Failed</div>
+            </div>
+            <div class="stat-card warning" id="warningTests">
+                <div class="stat-number">0</div>
+                <div class="stat-label">Warnings</div>
+            </div>
+        </div>
+        
+        <div class="test-results" id="testResults" style="display: none;">
+            <h3>Overall Test Results</h3>
+            <div id="testOutput"></div>
+        </div>
+        
+        <div class="model-tests">
+            <!-- Simple Model Test -->
+            <div class="model-test">
+                <div class="model-header simple">Simple Model</div>
+                <div class="model-content">
+                    <div class="model-info" id="simpleInfo">
+                        Loading simple model...
+                    </div>
+                    <div class="model-visualization">
+                        <div class="tree-container" id="simpleContainer">
+                            <div class="loading">Loading visualization...</div>
+                        </div>
+                    </div>
+                    <div id="simpleResults"></div>
+                </div>
+            </div>
+            
+            <!-- Genetic Model Test -->
+            <div class="model-test">
+                <div class="model-header genetic">Genetic Model</div>
+                <div class="model-content">
+                    <div class="model-info" id="geneticInfo">
+                        Loading genetic model...
+                    </div>
+                    <div class="model-visualization">
+                        <div class="tree-container" id="geneticContainer">
+                            <div class="loading">Loading visualization...</div>
+                        </div>
+                    </div>
+                    <div id="geneticResults"></div>
+                </div>
+            </div>
+            
+            <!-- Location Model Test -->
+            <div class="model-test">
+                <div class="model-header location">Location Model</div>
+                <div class="model-content">
+                    <div class="model-info" id="locationInfo">
+                        Loading location model...
+                    </div>
+                    <div class="model-visualization">
+                        <div class="tree-container" id="locationContainer">
+                            <div class="loading">Loading visualization...</div>
+                        </div>
+                    </div>
+                    <div id="locationResults"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Links to other test HTMLs -->
+    <div style="max-width: 1400px; margin: 30px auto 0 auto; background: #f8f9fa; border-radius: 8px; padding: 20px; text-align: center; border: 1px solid #dee2e6;">
+        <h3>Other Test Pages</h3>
+        <a href="test_simple_model.html" style="margin: 0 15px; color: #007bff; text-decoration: underline; font-weight: bold;">Simple Model Test</a>
+        <a href="test_genetic_model.html" style="margin: 0 15px; color: #28a745; text-decoration: underline; font-weight: bold;">Genetic Model Test</a>
+        <a href="test_location_model.html" style="margin: 0 15px; color: #fd7e14; text-decoration: underline; font-weight: bold;">Location Model Test</a>
+    </div>
+
+    <script>
+        let allTestData = {
+            simple: null,
+            genetic: null,
+            location: null
+        };
+        
+        let allTestResults = [];
+        
+        // Test functions for each model type
+        async function testSimpleModel() {
+            const results = [];
+            
+            // Test data loading
+            if (allTestData.simple) {
+                results.push({
+                    name: "Data Loading",
+                    status: "pass",
+                    message: "Simple model loaded successfully"
+                });
+            } else {
+                results.push({
+                    name: "Data Loading",
+                    status: "fail",
+                    message: "Failed to load simple model"
+                });
+                return results;
+            }
+            
+            // Test data structure
+            const requiredFields = ['log_likelihood', 'tree', 'parameters'];
+            const missingFields = requiredFields.filter(field => !(field in allTestData.simple));
+            
+            if (missingFields.length === 0) {
+                results.push({
+                    name: "Data Structure",
+                    status: "pass",
+                    message: "All required fields present"
+                });
+            } else {
+                results.push({
+                    name: "Data Structure",
+                    status: "fail",
+                    message: `Missing fields: ${missingFields.join(', ')}`
+                });
+            }
+            
+            // Test visualization
+            const container = document.getElementById('simpleContainer');
+            const svg = container.querySelector('svg');
+            
+            if (svg) {
+                const nodes = svg.querySelectorAll('.node circle');
+                results.push({
+                    name: "Visualization",
+                    status: "pass",
+                    message: `Rendered ${nodes.length} nodes`
+                });
+            } else {
+                results.push({
+                    name: "Visualization",
+                    status: "fail",
+                    message: "Visualization not rendered"
+                });
+            }
+            
+            return results;
+        }
+        
+        async function testGeneticModel() {
+            const results = [];
+            
+            // Test data loading
+            if (allTestData.genetic) {
+                results.push({
+                    name: "Data Loading",
+                    status: "pass",
+                    message: "Genetic model loaded successfully"
+                });
+            } else {
+                results.push({
+                    name: "Data Loading",
+                    status: "fail",
+                    message: "Failed to load genetic model"
+                });
+                return results;
+            }
+            
+            // Test genetic prior
+            if ('genetic_prior' in allTestData.genetic) {
+                results.push({
+                    name: "Genetic Prior",
+                    status: "pass",
+                    message: `Genetic prior: ${allTestData.genetic.genetic_prior.toFixed(3)}`
+                });
+            } else {
+                results.push({
+                    name: "Genetic Prior",
+                    status: "fail",
+                    message: "Genetic prior not found"
+                });
+            }
+            
+            // Test visualization
+            const container = document.getElementById('geneticContainer');
+            const svg = container.querySelector('svg');
+            
+            if (svg) {
+                const nodes = svg.querySelectorAll('.node circle');
+                results.push({
+                    name: "Visualization",
+                    status: "pass",
+                    message: `Rendered ${nodes.length} nodes`
+                });
+            } else {
+                results.push({
+                    name: "Visualization",
+                    status: "fail",
+                    message: "Visualization not rendered"
+                });
+            }
+            
+            return results;
+        }
+        
+        async function testLocationModel() {
+            const results = [];
+            
+            // Test data loading
+            if (allTestData.location) {
+                results.push({
+                    name: "Data Loading",
+                    status: "pass",
+                    message: "Location model loaded successfully"
+                });
+            } else {
+                results.push({
+                    name: "Data Loading",
+                    status: "fail",
+                    message: "Failed to load location model"
+                });
+                return results;
+            }
+            
+            // Test data structure
+            const requiredFields = ['log_likelihood', 'tree', 'parameters'];
+            const missingFields = requiredFields.filter(field => !(field in allTestData.location));
+            
+            if (missingFields.length === 0) {
+                results.push({
+                    name: "Data Structure",
+                    status: "pass",
+                    message: "All required fields present"
+                });
+            } else {
+                results.push({
+                    name: "Data Structure",
+                    status: "fail",
+                    message: `Missing fields: ${missingFields.join(', ')}`
+                });
+            }
+            
+            // Test visualization
+            const container = document.getElementById('locationContainer');
+            const svg = container.querySelector('svg');
+            
+            if (svg) {
+                const nodes = svg.querySelectorAll('.node circle');
+                results.push({
+                    name: "Visualization",
+                    status: "pass",
+                    message: `Rendered ${nodes.length} nodes`
+                });
+            } else {
+                results.push({
+                    name: "Visualization",
+                    status: "fail",
+                    message: "Visualization not rendered"
+                });
+            }
+            
+            return results;
+        }
+        
+        async function runAllTests() {
+            const testOutput = document.getElementById('testOutput');
+            const testResultsDiv = document.getElementById('testResults');
+            const summaryStats = document.getElementById('summaryStats');
+            
+            testOutput.innerHTML = '<div class="loading">Running comprehensive test suite...</div>';
+            testResultsDiv.style.display = 'block';
+            summaryStats.style.display = 'grid';
+            
+            // Run tests for each model
+            const simpleResults = await testSimpleModel();
+            const geneticResults = await testGeneticModel();
+            const locationResults = await testLocationModel();
+            
+            // Combine all results
+            allTestResults = [
+                ...simpleResults.map(r => ({ ...r, model: 'Simple' })),
+                ...geneticResults.map(r => ({ ...r, model: 'Genetic' })),
+                ...locationResults.map(r => ({ ...r, model: 'Location' }))
+            ];
+            
+            // Display results
+            testOutput.innerHTML = allTestResults.map(result => 
+                `<div class="test-item ${result.status}">
+                    <strong>[${result.model}] ${result.name}:</strong> ${result.message}
+                </div>`
+            ).join('');
+            
+            // Update summary statistics
+            updateSummaryStats();
+            
+            // Update individual model results
+            updateModelResults('simple', simpleResults);
+            updateModelResults('genetic', geneticResults);
+            updateModelResults('location', locationResults);
+        }
+        
+        async function runIndividualTests() {
+            // Run tests for each model separately
+            const simpleResults = await testSimpleModel();
+            const geneticResults = await testGeneticModel();
+            const locationResults = await testLocationModel();
+            
+            updateModelResults('simple', simpleResults);
+            updateModelResults('genetic', geneticResults);
+            updateModelResults('location', locationResults);
+        }
+        
+        function updateModelResults(modelType, results) {
+            const resultsDiv = document.getElementById(`${modelType}Results`);
+            
+            if (results.length === 0) {
+                resultsDiv.innerHTML = '<div class="error">No test results available</div>';
+                return;
+            }
+            
+            const passes = results.filter(r => r.status === 'pass').length;
+            const fails = results.filter(r => r.status === 'fail').length;
+            
+            resultsDiv.innerHTML = `
+                <h4>Test Results (${passes} passed, ${fails} failed)</h4>
+                ${results.map(result => 
+                    `<div class="test-item ${result.status}">
+                        <strong>${result.name}:</strong> ${result.message}
+                    </div>`
+                ).join('')}
+            `;
+        }
+        
+        function updateSummaryStats() {
+            const total = allTestResults.length;
+            const passes = allTestResults.filter(r => r.status === 'pass').length;
+            const fails = allTestResults.filter(r => r.status === 'fail').length;
+            const warnings = allTestResults.filter(r => r.status === 'warning').length;
+            
+            document.getElementById('totalTests').querySelector('.stat-number').textContent = total;
+            document.getElementById('passedTests').querySelector('.stat-number').textContent = passes;
+            document.getElementById('failedTests').querySelector('.stat-number').textContent = fails;
+            document.getElementById('warningTests').querySelector('.stat-number').textContent = warnings;
+        }
+        
+        function clearAllResults() {
+            document.getElementById('testResults').style.display = 'none';
+            document.getElementById('summaryStats').style.display = 'none';
+            document.getElementById('testOutput').innerHTML = '';
+            
+            ['simple', 'genetic', 'location'].forEach(modelType => {
+                document.getElementById(`${modelType}Results`).innerHTML = '';
+            });
+            
+            allTestResults = [];
+        }
+        
+        function exportResults() {
+            if (allTestResults.length === 0) {
+                alert('No test results to export. Run tests first.');
+                return;
+            }
+            
+            const exportData = {
+                timestamp: new Date().toISOString(),
+                totalTests: allTestResults.length,
+                results: allTestResults,
+                summary: {
+                    passes: allTestResults.filter(r => r.status === 'pass').length,
+                    fails: allTestResults.filter(r => r.status === 'fail').length,
+                    warnings: allTestResults.filter(r => r.status === 'warning').length
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `tree_visualization_test_results_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        function ensureChildrenArray(node) {
+            if (!('children' in node)) {
+                node.children = [];
+            }
+            if (Array.isArray(node.children)) {
+                node.children.forEach(ensureChildrenArray);
+            }
+        }
+        
+        // Load all model data
+        async function loadAllModels() {
+            try {
+                // Load simple model
+                const simpleResponse = await fetch('examples/model_simple.json');
+                if (simpleResponse.ok) {
+                    allTestData.simple = await simpleResponse.json();
+                    ensureChildrenArray(allTestData.simple.tree);
+                    document.getElementById('simpleInfo').innerHTML = `
+                        <strong>Log Likelihood:</strong> ${allTestData.simple.log_likelihood.toFixed(3)} | 
+                        <strong>Status:</strong> Loaded
+                    `;
+                    createTreeMap(allTestData.simple, "#simpleContainer", { tooltip: d3.select('#tooltip'), toggleSwitchId: 'toggleSwitch' });
+                }
+            } catch (error) {
+                let errorMessage = 'Error loading simple model';
+                if (error.message.includes('CORS') || error.message.includes('cross-origin')) {
+                    errorMessage = 'CORS Error: Use local web server (see instructions below)';
+                }
+                document.getElementById('simpleInfo').innerHTML = `<span class="error">${errorMessage}</span>`;
+            }
+            
+            try {
+                // Load genetic model
+                const geneticResponse = await fetch('examples/model_genetic.json');
+                if (geneticResponse.ok) {
+                    allTestData.genetic = await geneticResponse.json();
+                    ensureChildrenArray(allTestData.genetic.tree);
+                    document.getElementById('geneticInfo').innerHTML = `
+                        <strong>Log Likelihood:</strong> ${allTestData.genetic.log_likelihood.toFixed(3)} | 
+                        <strong>Genetic Prior:</strong> ${allTestData.genetic.genetic_prior ? allTestData.genetic.genetic_prior.toFixed(3) : 'N/A'} |
+                        <strong>Status:</strong> Loaded
+                    `;
+                    createTreeMap(allTestData.genetic, "#geneticContainer", { tooltip: d3.select('#tooltip'), toggleSwitchId: 'toggleSwitch' });
+                }
+            } catch (error) {
+                let errorMessage = 'Error loading genetic model';
+                if (error.message.includes('CORS') || error.message.includes('cross-origin')) {
+                    errorMessage = 'CORS Error: Use local web server (see instructions below)';
+                }
+                document.getElementById('geneticInfo').innerHTML = `<span class="error">${errorMessage}</span>`;
+            }
+            
+            try {
+                // Load location model
+                const locationResponse = await fetch('examples/model_location.json');
+                if (locationResponse.ok) {
+                    allTestData.location = await locationResponse.json();
+                    ensureChildrenArray(allTestData.location.tree);
+                    document.getElementById('locationInfo').innerHTML = `
+                        <strong>Log Likelihood:</strong> ${allTestData.location.log_likelihood.toFixed(3)} | 
+                        <strong>Status:</strong> Loaded
+                    `;
+                    createTreeMap(allTestData.location, "#locationContainer", { tooltip: d3.select('#tooltip'), toggleSwitchId: 'toggleSwitch' });
+                }
+            } catch (error) {
+                let errorMessage = 'Error loading location model';
+                if (error.message.includes('CORS') || error.message.includes('cross-origin')) {
+                    errorMessage = 'CORS Error: Use local web server (see instructions below)';
+                }
+                document.getElementById('locationInfo').innerHTML = `<span class="error">${errorMessage}</span>`;
+            }
+            
+            // Check if all models failed to load (likely CORS issue)
+            if (!allTestData.simple && !allTestData.genetic && !allTestData.location) {
+                const testOutput = document.getElementById('testOutput');
+                const testResultsDiv = document.getElementById('testResults');
+                
+                testResultsDiv.style.display = 'block';
+                testOutput.innerHTML = `
+                    <div class="error">
+                        <h4>CORS Error: Cannot load local files directly in browser</h4>
+                        <p><strong>Solution:</strong> Use a local web server to run these tests.</p>
+                        <h5>Quick Setup:</h5>
+                        <ol>
+                            <li><strong>Python:</strong> <code>python3 -m http.server 8000</code></li>
+                            <li><strong>Node.js:</strong> <code>npx http-server -p 8000</code></li>
+                            <li><strong>PHP:</strong> <code>php -S localhost:8000</code></li>
+                        </ol>
+                        <p>Then open: <code>http://localhost:8000/tests/test_suite.html</code></p>
+                        <p><strong>Note:</strong> Make sure you access the file via <code>http://localhost:8000</code> not <code>file://</code></p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Initialize the test suite
+        window.addEventListener('load', function() {
+            loadAllModels();
+        });
+    </script>
+</body>
+</html> 
