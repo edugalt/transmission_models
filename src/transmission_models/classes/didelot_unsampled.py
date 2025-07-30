@@ -138,7 +138,7 @@ class didelot_unsampled():
         self.pdf_infection_in_between = lambda t,Dt: (pdf_in_between(self,Dt,t))
 
 
-        self.T = T
+        self._T = T
         self.G = nx.DiGraph()
         self.host_dict = {}
 
@@ -166,6 +166,8 @@ class didelot_unsampled():
 
         self.same_location_log_prior = 0
         self.same_location_prior = None
+
+        self.log_posterior = 0
 
 
         self.Delta_crit = 4/((1-self.pi)*self.pmf_offspring(1)*((self.theta_inf)**(-self.k_inf))/(GAMMA(self.k_inf)))**(1/(self.k_inf-1))
@@ -819,6 +821,73 @@ class didelot_unsampled():
             log_likelihood += self.log_likelihood_host(h, T)
         return log_likelihood
 
+    def log_posterior_transmission_tree(self):
+        """
+        Compute the log-posterior of the current transmission tree.
+
+        This method calculates the log-posterior probability of the current transmission tree by summing the log-likelihood
+        of the tree and any additional prior log-probabilities, such as genetic and location priors, if they are defined.
+
+        Returns
+        -------
+        float
+            The computed log-posterior of the current transmission tree.
+
+        Notes
+        -----
+        The log-posterior is computed as:
+            log_posterior = log_likelihood + genetic_log_prior (if defined) + same_location_log_prior (if defined)
+
+        The method uses the following attributes:
+            - self.log_likelihood: Log-likelihood of the transmission tree.
+            - self.genetic_log_prior: Log-prior from the genetic model (if defined).
+            - self.same_location_log_prior: Log-prior from the location model (if defined).
+        """
+        self.log_posterior = 0
+        self.log_posterior += self.log_likelihood
+        if self.genetic_prior is not None:
+            self.log_posterior += self.genetic_log_prior
+        if self.same_location_prior is not None:
+            self.log_posterior += self.same_location_log_prior
+        return self.log_posterior
+    
+    def get_log_posterior_transmission_tree(self, T):
+        
+        """
+        Compute and update the log-posterior of the transmission tree.
+
+        This method calculates the log-posterior probability of the given transmission tree `T` by combining the log-likelihood
+        of the tree with any additional prior log-probabilities, such as genetic and location priors, if they are defined.
+        The computed log-posterior and any relevant prior log-likelihoods are stored as attributes of the object.
+
+        Parameters
+        ----------
+        T : networkx.DiGraph
+            The transmission tree for which to compute the log-posterior.
+
+        Returns
+        -------
+        float
+            The computed log-posterior of the transmission tree.
+
+        Notes
+        -----
+        The log-posterior is computed as:
+            log_posterior = log_likelihood + genetic_log_prior (if defined) + same_location_log_prior (if defined)
+
+        The method also updates the following attributes:
+            - self.log_posterior
+            - self.genetic_log_prior (if applicable)
+            - self.same_location_log_prior (if applicable)
+        """
+        
+        self.log_posterior = self.log_posterior_transmission_tree(T)
+        if self.genetic_prior is not None:
+            self.genetic_log_prior = self.genetic_prior.log_prior_T(T)
+        if self.same_location_prior is not None:
+            self.same_location_log_prior = self.same_location_prior.log_prior_T(T)
+        return self.log_posterior
+    
     def show_log_likelihoods(self, hosts=None, T=None, verbose=False):
         """
         Print and return the log-likelihoods for the sampling, offspring, and infection models.

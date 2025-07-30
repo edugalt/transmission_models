@@ -751,3 +751,77 @@ def build_infection_based_network(model, host_list):
     
     return T
 
+
+def build_infection_offspring_based_network(model, host_list):
+    """
+    Generate a transmission tree network given a list of sampled hosts.
+    
+    This function creates a transmission tree from the dataset. It uses 
+    the model's sampling and infection parameters
+    to construct a plausible initial transmission network.
+
+    For each host in host_list, is going to be connected to a unsampled host called "Virtual_host".
+
+    Parameters
+    ----------
+    model : didelot_unsampled
+        The transmission model with sampling and infection parameters.
+    host_list : list
+        List of host objects representing the sampled data.
+        
+    Returns
+    -------
+    T : networkx.DiGraph
+        The transmission tree network.
+    """
+    # Create the transmission tree
+    T = nx.DiGraph()
+
+    t_min = min(h.t_inf for h in host_list)    
+    root_host = host("Virtual_host", -1, t_inf=t_min - 1.5 * model.Delta_crit)
+
+    for h in host_list:
+        T.add_edge(root_host, h)
+
+    return T
+
+def build_infection_chain_based_network(model, host_list):
+    """
+    Generate a transmission tree network given a list of sampled hosts and genetic data.
+
+    This function creates a transmission tree from the dataset. It uses 
+    the model's sampling and infection parameters
+    to construct a plausible initial transmission network.
+
+    Each host in is going to infect only one host generating a chain of infections.
+
+
+    Parameters
+    ----------
+    model : didelot_unsampled
+        The transmission model with sampling and infection parameters.
+    host_list : list
+        List of host objects representing the sampled data.
+    genetic_data : list
+        List of genetic data objects representing the genetic data.
+
+    Returns
+    -------
+    T : networkx.DiGraph
+        The transmission tree network.
+    """
+    # Sort hosts by infection time
+    host_list = sorted(host_list, key=lambda host_obj: host_obj.t_inf)
+
+    # Create the transmission tree
+    T = nx.DiGraph()
+
+    t_min = min(h.t_inf for h in host_list)
+    root_host = host("Virtual_host", -1, t_inf=t_min - 1.5 * model.Delta_crit)
+    host_list.insert(0, root_host)
+    
+    for i,h in enumerate(host_list):
+        if i==0: continue
+        T.add_edge(host_list[i-1], h)
+
+    return T
