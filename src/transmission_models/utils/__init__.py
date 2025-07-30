@@ -649,6 +649,105 @@ def json_to_tree(filename, sampling_params=None, offspring_params=None, infectio
         infection_params = dict_tree["parameters"]["infection_params"]
 
     model = didelot_unsampled(sampling_params, offspring_params, infection_params)
-    model.log_likelihood = dict_tree["log_likelihood"]
-
+    
+    if 'tree' in dict_tree:
+        edge_list = read_tree_dict(dict_tree['tree'])
+        model.T = nx.DiGraph()
+        model.T.add_edges_from(edge_list)
+        
+        # Find root host
+        roots = [h for h in model.T if model.T.in_degree(h) == 0]
+        if roots:
+            model.root_host = roots[0]
+    
     return model
+
+
+def build_infection_based_network(model, host_list):
+    """
+    Generate a transmission tree network given a list of sampled hosts.
+    
+    This function creates a transmission tree from the dataset. It uses 
+    the model's sampling and infection parameters
+    to construct a plausible initial transmission network.
+
+    For each host, we get a number of infected hosts and then we toss a 
+    coin to each host to see if they are connected given the infection time.
+
+    At the end, we add a virtual root host to connect all disconnected components.
+    
+    Parameters
+    ----------
+    model : didelot_unsampled
+        The transmission model with sampling and infection parameters.
+    host_list : list
+        List of host objects representing the sampled data.
+        
+    Returns
+    -------
+    model: The updated model with the generated transmission tree
+        
+    Notes
+    -----
+    This function implements the algorithm described in the notebook for
+    generating initial transmission networks. It creates a directed graph
+    representing the transmission tree and adds a virtual root host to
+    connect all disconnected components.
+    """
+    import networkx as nx
+    
+    host_list = sorted(host_list, key=lambda host_obj: host_obj.t_inf)
+
+    # Generate a transmission tree with our dataset to initialize the MCMC
+    edge_list = []
+    K_dict = {h: model.samp_offspring() for h in host_list}
+    
+    for i, h1 in enumerate(host_list[::-1]):
+        P = 0
+        event = False
+        if i < 20:
+            s = 0
+        else:
+            s = i
+        K = model.samp_offspring()
+        if K > 0:
+            for h2 in host_list[s::-1]:
+                if int(h1) == int(h2):
+                    continue
+                if K_dict[h2] == 0:
+                    continue
+                if h1.t_inf > h2.t_inf:
+                    P_new = model.pdf_infection(h1.t_inf - h2.t_inf)
+                    
+                    if P < P_new:
+                        P = P_new
+                        h2_infec = h2
+                        K_dict[h2] -= 1
+                        event = True
+            if event:
+                edge_list.append((h2_infec, h1))
+    
+    # Create the transmission tree
+    T = nx.DiGraph()
+    T.add_edges_from(edge_list)
+    
+    # Find roots and create virtual root host
+    roots = [h for h in T if T.in_degree(h) == 0]
+    if roots:
+        t_min = min(roots, key=lambda h: h.t_inf).t_inf
+    else:
+        # If no roots found, use minimum infection time from host_list
+        t_min = min(h.t_inf for h in host_list)
+    
+    root_host = host("Virtual_host", -1, t_inf=t_min - 1.5 * model.Delta_crit)
+    
+    # Connect roots to virtual host
+    for h in roots:
+        T.add_edge(root_host, h)
+    
+    # Connect any disconnected hosts to virtual host
+    for h in [h for h in host_list if h not in T]:
+        T.add_edge(root_host, h)
+    
+    return T
+

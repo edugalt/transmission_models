@@ -54,8 +54,6 @@ class didelot_unsampled():
     ----------
     T : networkx.DiGraph
         The transmission tree.
-    G : networkx.DiGraph
-        The transmission network.
     host_dict : dict
         Dictionary mapping host IDs to host objects.
     log_likelihood : float
@@ -72,7 +70,7 @@ class didelot_unsampled():
     PLoS computational biology, 13(4), e1005496.
     """
 
-    def __init__(self, sampling_params, offspring_params, infection_params):
+    def __init__(self, sampling_params, offspring_params, infection_params, T=None):
         """
         Initialize the Didelot unsampled transmission model.
 
@@ -91,6 +89,9 @@ class didelot_unsampled():
             Parameters for the infection model containing:
             - k_inf : float, shape parameter for gamma distribution
             - theta_inf : float, scale parameter for gamma distribution
+        T : networkx.DiGraph, optional
+            The transmission tree. If provided, the model will be initialized
+            with this tree. Default is None.
 
         Raises
         ------
@@ -118,6 +119,7 @@ class didelot_unsampled():
         except KeyError as e:
             raise
 
+
         # Distributions functions of the models
         self.dist_sampling = gamma(a=self.k_samp, scale=self.theta_samp)
         self.pdf_sampling = lambda t: self.dist_sampling.pdf(t)
@@ -136,7 +138,7 @@ class didelot_unsampled():
         self.pdf_infection_in_between = lambda t,Dt: (pdf_in_between(self,Dt,t))
 
 
-        self.T = nx.DiGraph()
+        self.T = T
         self.G = nx.DiGraph()
         self.host_dict = {}
 
@@ -169,6 +171,31 @@ class didelot_unsampled():
         self.Delta_crit = 4/((1-self.pi)*self.pmf_offspring(1)*((self.theta_inf)**(-self.k_inf))/(GAMMA(self.k_inf)))**(1/(self.k_inf-1))
 
         # def generate_networks(self):
+
+    @property
+    def T(self):
+        return self._T
+    
+    @T.setter
+    def T(self, value):
+        self._T = value
+        if self.T is None:
+            return
+        return value
+    
+    def set_T(self, T):
+        if T is None:
+            raise ValueError("T is None!!")
+        self.T = T       
+        # Find root host
+        roots = [h for h in self.T if self.T.in_degree(h) == 0]
+        if roots:
+            self.root_host = roots[0]
+        # Get unsampled hosts
+        self.unsampled_hosts = self.get_unsampled_hosts()
+
+        # Get candidates to chain
+        self.candidates_to_chain = self.get_candidates_to_chain()
 
     def samp_t_inf_between(self, h1, h2):
         """
