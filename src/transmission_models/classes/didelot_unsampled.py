@@ -227,16 +227,76 @@ class didelot_unsampled():
         return sample_in_between(self,Dt)
 
     def add_root(self, t_sampl, id="0", genetic_data=[], t_inf=0, t_sample=None):
+        """
+        Add the root host to the transmission tree.
+
+        Parameters
+        ----------
+        t_sampl : float
+            Sampling time of the root host.
+        id : str, optional
+            Identifier for the root host. Default is "0".
+        genetic_data : list, optional
+            Genetic data for the root host. Default is empty list.
+        t_inf : float, optional
+            Infection time of the root host. Default is 0.
+        t_sample : float, optional
+            Sampling time of the root host. Default is None.
+
+        Returns
+        -------
+        host
+            The root host object.
+        """
         self.root_host = host(id, 0, genetic_data, t_inf, t_sampl)
         return self.root_host
 
     def successors(self, host):
+        """
+        Get the successors (children) of a given host in the transmission tree.
+
+        Parameters
+        ----------
+        host : host
+            The host node whose successors are to be returned.
+
+        Returns
+        -------
+        iterator
+            An iterator over the successors of the host.
+        """
         return self.T.successors(host)
 
     def parent(self, host):
+        """
+        Get the parent (infector) of a given host in the transmission tree.
+
+        Parameters
+        ----------
+        host : host
+            The host node whose parent is to be returned.
+
+        Returns
+        -------
+        host
+            The parent host object.
+        """
         return list(self.T.predecessors(host))[0]
 
     def out_degree(self, host):
+        """
+        Get the out-degree (number of children) of a host in the transmission tree.
+
+        Parameters
+        ----------
+        host : host
+            The host node whose out-degree is to be returned.
+
+        Returns
+        -------
+        int
+            The out-degree of the host.
+        """
         return self.T.out_degree(host)
 
     def choose_successors(self, host, k=1):
@@ -257,7 +317,20 @@ class didelot_unsampled():
         """
         return sample(list(self.successors(host)), k)
 
-    def compute_Delta_loc_prior(self,T_new):
+    def compute_Delta_loc_prior(self, T_new):
+        """
+        Compute the change in the location prior log-likelihood for a new tree.
+
+        Parameters
+        ----------
+        T_new : networkx.DiGraph
+            The new transmission tree.
+
+        Returns
+        -------
+        tuple
+            (Delta log prior, new log prior, old log prior, old correction log-likelihood)
+        """
         LP_sloc_top_old = self.same_location_prior.correction_LL
         LP_sloc_old = self.same_location_prior.log_prior
         LP_sloc_new = self.same_location_prior.log_prior_T(T_new)
@@ -266,12 +339,33 @@ class didelot_unsampled():
         return DL_prior_same_location, LP_sloc_new, LP_sloc_old, LP_sloc_top_old
 
     def get_candidates_to_chain(self):
+        """
+        Get the list of candidate hosts for chain moves in the transmission tree.
+
+        Returns
+        -------
+        list
+            List of candidate host nodes for chain moves.
+        """
         self.candidates_to_chain = [h for h in self.T if
                                     not h == self.root_host and not self.out_degree(self.parent(h)) == 1]
 
         return self.candidates_to_chain
 
     def get_N_candidates_to_chain(self, recompute=False):
+        """
+        Get the number of candidate hosts for chain moves, optionally recomputing the list.
+
+        Parameters
+        ----------
+        recompute : bool, optional
+            If True, recompute the list of candidates. Default is False.
+
+        Returns
+        -------
+        int
+            Number of candidate hosts for chain moves.
+        """
         if recompute:
             self.N_candidates_to_chain = len(self.get_candidates_to_chain())
         else:
@@ -295,6 +389,14 @@ class didelot_unsampled():
         return self.roots_subtrees
 
     def get_unsampled_hosts(self):
+        """
+        Get the list of unsampled hosts in the transmission tree (excluding the root).
+
+        Returns
+        -------
+        list
+            List of unsampled host nodes.
+        """
         self.unsampled_hosts = [h for h in self.T if not h.sampled and h != self.root_host]
         return self.unsampled_hosts
 
@@ -717,51 +819,76 @@ class didelot_unsampled():
             log_likelihood += self.log_likelihood_host(h, T)
         return log_likelihood
 
-    def show_log_likelihoods(self,hosts=None,T=None,verbose=False):
+    def show_log_likelihoods(self, hosts=None, T=None, verbose=False):
+        """
+        Print and return the log-likelihoods for the sampling, offspring, and infection models.
+
+        Parameters
+        ----------
+        hosts : list, optional
+            List of host objects to compute log-likelihoods for. If None, computes for all hosts in T.
+        T : networkx.DiGraph, optional
+            Transmission tree. If None, uses self.T.
+        verbose : bool, optional
+            If True, prints the log-likelihoods. Default is False.
+
+        Returns
+        -------
+        tuple
+            (LL_sampling, LL_offspring, LL_infection): Log-likelihoods for the sampling, offspring, and infection models.
+        """
         if T is None:
             T = self.T
 
         if hosts is not None:
-            LL_sampling = self.get_sampling_model_log_likelihood(hosts,T)
-            LL_offspring = self.get_offspring_model_log_likelihood(hosts,T)
-            LL_infection = self.get_infection_model_log_likelihood(hosts,T)
+            LL_sampling = self.get_sampling_model_log_likelihood(hosts, T)
+            LL_offspring = self.get_offspring_model_log_likelihood(hosts, T)
+            LL_infection = self.get_infection_model_log_likelihood(hosts, T)
         else:
             LL_sampling = 0
             LL_offspring = 0
             LL_infection = 0
             for h in T:
-                LL_sampling += self.get_sampling_model_log_likelihood(h,T)
-                LL_offspring += self.get_offspring_model_log_likelihood(h,T)
-                LL_infection += self.get_infection_model_log_likelihood(h,T)
+                LL_sampling += self.get_sampling_model_log_likelihood(h, T)
+                LL_offspring += self.get_offspring_model_log_likelihood(h, T)
+                LL_infection += self.get_infection_model_log_likelihood(h, T)
         if verbose:
-            print("Sampling model:",LL_sampling)
-            print("Offspring model:",LL_offspring)
-            print("Infection model:",LL_infection)
-        return LL_sampling,LL_offspring,LL_infection
+            print("Sampling model:", LL_sampling)
+            print("Offspring model:", LL_offspring)
+            print("Infection model:", LL_infection)
+        return LL_sampling, LL_offspring, LL_infection
 
     def log_likelihood_transmission_tree_old(self, T):
+        """
+        Compute the log-likelihood of the entire transmission tree using the old method.
+
+        Parameters
+        ----------
+        T : networkx.DiGraph
+            Transmission tree to compute the log-likelihood for.
+
+        Returns
+        -------
+        float
+            The log-likelihood of the transmission tree.
+        """
         log_likelihood = 0
         Pi = 1
 
         for h in T:
             # Sampling model
             if h.sampled:
-                # sigma = gamma.pdf(h.sample_time,1,h.t_inf,tr)
                 sigma = self.pdf_sampling(h.t_sample - h.t_inf)
-                # print("--",int(h),sigma,h.t_inf,h.t_sample,h.t_inf-h.t_sample)
                 Pi = self.pi * (sigma)
             else:
                 Pi = (1 - self.pi)
 
             # Offspring model
             Pi *= self.pmf_offspring(T.out_degree(h))
-            # print("--",int(h),self.pmf_offspring(self.T.out_degree(h)))
 
             # Infection model
             for j in T.successors(h):
-                # print("--",int(h),int(j),j.t_inf-h.t_inf,self.pdf_infection(j.t_inf-h.t_inf))
                 sigma2 = self.pdf_infection(j.t_inf - h.t_inf)
-                # print("------------------",int(h),int(j),h.t_inf,j.t_inf,j.t_inf-h.t_inf)
                 if sigma2 == 0:
                     self.log_likelihood = -1e30
                     print("Impossible times!!!", int(h), int(j), h.t_inf, j.t_inf, j.t_inf - h.t_inf)
@@ -909,50 +1036,86 @@ class didelot_unsampled():
 
         return self.newick
 
-    def save_json(self,filename):
+    def save_json(self, filename):
         """
-        Saves the transmission tree in a json file.
+        Save the transmission tree to a JSON file.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the output JSON file.
         """
-        utils.tree_to_json(self,filename)
+        utils.tree_to_json(self, filename)
 
     @classmethod
-    def json_to_tree(cls,filename, sampling_params=None, offspring_params=None, infection_params=None):
+    def json_to_tree(cls, filename, sampling_params=None, offspring_params=None, infection_params=None):
+        """
+        Load a transmission model from a JSON file and reconstruct the model object.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the JSON file.
+        sampling_params : dict, optional
+            Sampling parameters to override those in the file. Default is None.
+        offspring_params : dict, optional
+            Offspring parameters to override those in the file. Default is None.
+        infection_params : dict, optional
+            Infection parameters to override those in the file. Default is None.
+
+        Returns
+        -------
+        didelot_unsampled
+            The reconstructed transmission model.
+        """
         edge_list = []
-        with open(filename,"r") as json_data:
+        with open(filename, "r") as json_data:
             dict_tree = json.load(json_data)
             json_data.close()
-            # print(dict_tree.keys())
             if sampling_params is None:
                 sampling_params = dict_tree["parameters"]["sampling_params"]
-                # print(sampling_params)
             if offspring_params is None:
                 offspring_params = dict_tree["parameters"]["offspring_params"]
-    #             print(offspring_params)
             if infection_params is None:
                 infection_params = dict_tree["parameters"]["infection_params"]
-    #             print(infection_params)
 
             model = cls(sampling_params, offspring_params, infection_params)
             model.log_likelihood = dict_tree["log_likelihood"]
             model.T = nx.DiGraph()
             model.root_host = utils.get_host_from_dict(dict_tree["tree"])
-            edge_list = utils.read_tree_dict(dict_tree["tree"],h1=model.root_host, edge_list=[])
+            edge_list = utils.read_tree_dict(dict_tree["tree"], h1=model.root_host, edge_list=[])
             model.T.add_edges_from(edge_list)
 
             return model
-    # def read_from_json(cls,filename):
-    #     """
-    #     Reads a transmission tree from a json file.
-    #     """
-
 
     def infection_time_from_sampling_step(self, selected_host=None, metHast=True, verbose=False):
         """
-        Method to change the infection time of a host amd then accept the change using the Metropolis Hastings algorithm.
+        Propose and possibly accept a new infection time for a sampled host using the Metropolis-Hastings algorithm.
+
+        This method samples a new infection time for a selected host (or a random sampled host if not provided),
+        computes the acceptance probability, and updates the host's infection time if the proposal is accepted.
 
         Parameters
         ----------
-        verbose
+        selected_host : host, optional
+            The host whose infection time will be changed. If None, a random sampled host is selected.
+        metHast : bool, optional
+            If True, use the Metropolis-Hastings algorithm to accept or reject the proposal. Default is True.
+        verbose : bool, optional
+            If True, print detailed information about the proposal. Default is False.
+
+        Returns
+        -------
+        t_inf_new : float
+            The proposed new infection time.
+        gg : float
+            Proposal ratio for the Metropolis-Hastings step.
+        pp : float
+            Likelihood ratio for the Metropolis-Hastings step.
+        P : float
+            Acceptance probability for the Metropolis-Hastings step.
+        selected_host : host
+            The host whose infection time was proposed to change.
         """
         L_old = self.get_log_likelihood_transmission()
         rejects = 0
@@ -985,8 +1148,6 @@ class didelot_unsampled():
             for j in self.T.successors(selected_host):
                 if j.t_inf - (selected_host.t_sample - t_inf_new) < 0:
                     acceptable = False
-                    # print("kk")
-                    # print("...............",intento,int(selected_host),int(j),j.t_inf-(selected_host.t_sample-t_inf_new),j.t_inf,selected_host.t_sample,selected_host.t_sample-t_inf_new)
                     break
             else:
                 for j in self.T.predecessors(selected_host):
@@ -996,187 +1157,28 @@ class didelot_unsampled():
                 else:
                     acceptable = True
 
-        # gg = self.pdf_sampling(t_inf_new)/self.pdf_sampling(selected_host.t_sample-selected_host.t_inf)
         gg = ((t_inf_old2/t_inf_new ) ** (self.k_samp - 1) * np.exp(-(t_inf_old2 - t_inf_new) / self.theta_samp))
-        # pp2 = likelihood_ratio(self,selected_host,t_inf_old,selected_host.t_sample-t_inf_new,log=False)
-        # L_old = self.log_likelihood_transmission()
 
         selected_host.t_inf = selected_host.t_sample - t_inf_new
-        # L_new = self.get_log_likelihood_transmission()
-
 
         selected_host.t_inf = t_inf_old
         self.log_likelihood = L_old
 
         pp = np.exp(L_new - L_old)
         P = gg * pp
-        # P2 = gg*pp2*gg
-        # if not P-P2 <1e-9:
-        #     for j in self.T.successors(selected_host):
-        #         if  j.sampled:print("rejected with non sampled successor",j.sampled)
-        # else:
-        #     for j in self.T.successors(selected_host):
-        #         if  j.sampled:print("accepted with non sampled successor",j.sampled)
-        # print(itt,P-P2 <1e-9,selected_host.t_sample-t_inf_new)
 
-        # Metropolis Hastings
         if metHast:
             if P > 1:
                 selected_host.t_inf = selected_host.t_sample - t_inf_new
                 self.log_likelihood = L_new
             else:
                 rnd = random()
-                # print(P,algo)
                 if rnd < P:
                     selected_host.t_inf = selected_host.t_sample - t_inf_new
                     self.log_likelihood = L_new
-                    # print("rejected",itt)\
 
         return t_inf_new, gg, pp, P, selected_host
 
-    # def infection_time_from_infection_model_step(self, selected_host=None, metHast=True, Dt_new=None, verbose=False):
-    #     """
-    #     Method to change the infection time of a host and then accept the change using the Metropolis Hastings algorithm.
-    #
-    #     Parameters
-    #     ----------
-    #     selected_host: host object, default=None
-    #         Host whose infection time will be changed. If None, a host is randomly selected.
-    #     metHast: bool, default=True
-    #         If True, the Metropolis Hastings algorithm is used to accept or reject the change.
-    #     t_inf_new: float, default=None
-    #         New infection time for the host. If None, a new time is sampled.
-    #     verbose: bool, default=False
-    #         If True, prints the results of the step.
-    #     """
-    #     L_old = self.get_log_likelihood_transmission()
-    #     rejects = 0
-    #
-    #     ##################################################################
-    #     ##################################################################
-    #     #######                    INFECTION TIME                   ######
-    #     ##################################################################
-    #     ##################################################################
-    #     if selected_host is None:
-    #         while True:
-    #             selected_host = sample(list(self.T.nodes()), 1)[0]
-    #             if selected_host != self.root_host: break
-    #
-    #     parent = self.parent(selected_host)
-    #
-    #     # print(t_inf_old)
-    #     t_inf_old = selected_host.t_inf
-    #     Dt_old = +selected_host.t_inf - parent.t_inf
-    #
-    #     # We don't want transmissions happening before the infectors transmission
-    #     t_min = None
-    #     # Choosing sampled node
-    #     if Dt_new is None:
-    #         if self.out_degree(selected_host) == 0 and not selected_host.sampled:
-    #             if selected_host.sampled:
-    #                 t_min = selected_host.t_sample - selected_host.t_inf
-    #                 Dt_new = self.dist_infection.ppf(random() * self.dist_infection.cdf(t_min))
-    #             else:
-    #                 Dt_new = self.samp_infection()
-    #             try:
-    #                 gg = ((Dt_old / Dt_new) ** (self.k_inf - 1) * np.exp(-(Dt_old - Dt_new) / self.theta_inf))
-    #             except RuntimeWarning:
-    #                 print(Dt_old, Dt_new, self.pdf_infection(Dt_new), self.k_inf, self.theta_inf,
-    #                       self.out_degree(selected_host), t_min, self.dist_infection.cdf(t_min))
-    #                 if Dt_old < 0:
-    #                     print("NEGATIVE!!!", selected_host.t_inf, parent.t_inf)
-    #                 raise RuntimeWarning
-    #
-    #             if metHast:
-    #                 selected_host.t_inf = parent.t_inf + Dt_new
-    #                 t_inf_new = selected_host.t_inf
-    #                 self.log_likelihood = self.get_log_likelihood_transmission()
-    #                 L_new = self.log_likelihood
-    #             # # if selected_host.sampled:
-    #             # DL = (self.k_inf - 1) * np.log(Dt_new / Dt_old) - ((Dt_new - Dt_old) / self.theta_inf)
-    #             # for h in self.successors(selected_host):
-    #             #     Dt_h_old = h.t_inf - t_inf_old
-    #             #     Dt_h_new = h.t_inf - t_inf_new
-    #             #     DL += (self.k_inf - 1) * np.log(Dt_h_new / Dt_h_old) - ((Dt_h_new - Dt_h_old) / self.theta_inf)
-    #             #
-    #             # if selected_host.sampled:
-    #             #     Dt_samp_old = selected_host.t_sample - t_inf_old
-    #             #     Dt_samp_new = selected_host.t_sample - t_inf_new
-    #             #     DL += (self.k_samp - 1) * np.log(Dt_samp_new / Dt_samp_old) - (
-    #             #             (Dt_samp_new - Dt_samp_old) / self.theta_samp)
-    #             #
-    #             #
-    #             # print(
-    #             #     f"A saco {L_new - L_old}, solo cambios {DL}, diff {L_new - L_old - DL}, similar? {np.abs(L_new - L_old - DL) < 1e-9},sampled? {selected_host.sampled}")
-    #             #
-    #             # print(f"\t--> pp={np.exp(L_new - L_old)}, gg={gg}, P={gg * np.exp(L_new - L_old)}")
-    #             return Dt_new, gg, 1 / gg, 1, selected_host, True
-    #         else:
-    #             # No leaf
-    #             if self.out_degree(selected_host) > 0:
-    #                 t_min = min(self.T.successors(selected_host), key=lambda j: j.t_inf).t_inf - parent.t_inf
-    #                 # No leaf and sampled
-    #                 if selected_host.sampled:
-    #                     t_min = min(selected_host.t_sample - selected_host.t_inf, t_min)
-    #             else:
-    #                 # Leaf and sampled
-    #                 t_min = selected_host.t_sample - selected_host.t_inf
-    #             Dt_new = self.dist_infection.ppf(random() * self.dist_infection.cdf(t_min))
-    #
-    #     try:
-    #         gg = ((Dt_old / Dt_new) ** (self.k_inf - 1) * np.exp(-(Dt_old - Dt_new) / self.theta_inf))
-    #     except RuntimeWarning:
-    #         print(Dt_old, Dt_new, self.pdf_infection(Dt_new), self.k_inf, self.theta_inf, selected_host.sampled,
-    #               self.out_degree(selected_host), t_min, self.dist_infection.cdf(t_min))
-    #         if Dt_old < 0:
-    #             print("NEGATIVE!!!", selected_host.t_inf, parent.t_inf)
-    #         raise RuntimeWarning
-    #
-    #     # t_inf_old = selected_host.t_inf
-    #     selected_host.t_inf = parent.t_inf + Dt_new
-    #     t_inf_new = selected_host.t_inf
-    #     L_new = self.get_log_likelihood_transmission()
-    #
-    #     # DL = (self.k_inf-1)*np.log(Dt_new/Dt_old) - ((Dt_new-Dt_old)/self.theta_inf)
-    #     # for h in self.successors(selected_host):
-    #     #     Dt_h_old = h.t_inf-t_inf_old
-    #     #     Dt_h_new = h.t_inf-t_inf_new
-    #     #     DL += (self.k_inf-1)*np.log(Dt_h_new/Dt_h_old) - ((Dt_h_new-Dt_h_old)/self.theta_inf)
-    #     #
-    #     # if selected_host.sampled:
-    #     #     Dt_samp_old = selected_host.t_sample-t_inf_old
-    #     #     Dt_samp_new = selected_host.t_sample-t_inf_new
-    #     #     DL += (self.k_samp-1)*np.log(Dt_samp_new/Dt_samp_old) - ((Dt_samp_new-Dt_samp_old)/self.theta_samp)
-    #     #     # DL += (self.k_inf - 1) * np.log(t_inf_new / Dt_samp_old) - ((t_inf_new - Dt_samp_old) / self.theta_inf)
-    #     #
-    #     # selected_host.t_inf = t_inf_old
-    #     self.log_likelihood = L_old
-    #     # print(f"A saco {L_new-L_old}, solo cambios {DL}, diff {L_new-L_old-DL}, similar? {np.abs(L_new-L_old-DL)<1e-9},sampled? {selected_host.sampled}")
-    #     pp = np.exp(L_new - L_old)
-    #     P = gg * pp
-    #     if verbose:
-    #         print(f"Dt_new: {Dt_new}, Dt_old: {Dt_old}, gg: {gg}, pp: {pp}, P: {P}, selected_host: {selected_host}")
-    #     # pp2 = likelihood_ratio(self,selected_host,t_inf_old,selected_host.t_sample-Dt_new,log=False)
-    #     # L_old = self.log_likelihood_transmission()
-    #
-    #     accepted = False
-    #     # Metropolis Hastings
-    #     if metHast:
-    #         if P > 1:
-    #             accepted = True
-    #             selected_host.t_inf = parent.t_inf + Dt_new
-    #             self.log_likelihood = L_new
-    #         else:
-    #             rnd = random()
-    #             # print(P,algo)
-    #             if rnd < P:
-    #                 accepted = True
-    #                 selected_host.t_inf = parent.t_inf + Dt_new
-    #                 self.log_likelihood = L_new
-    #                 # print("rejected",itt)
-    #             else:
-    #                 accepted = False
-    #     return Dt_new, gg, pp, P, selected_host, accepted
     def infection_time_from_infection_model_step(self, selected_host=None, metHast=True, Dt_new=None, verbose=False):
         """
         Method to change the infection time of a host and then accept the change using the Metropolis Hastings algorithm.

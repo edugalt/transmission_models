@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tree Visualization Library - Example</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://www.maths.usyd.edu.au/u/oscarf/tree_layout/tree_plot.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .control-group {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .control-group label {
+            font-weight: bold;
+            min-width: 200px;
+        }
+        
+        select, button {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        .toggle-switch {
+            transform: scale(1.2);
+        }
+        
+        .visualization-container {
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .tree-info {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            font-size: 14px;
+        }
+        
+        .tree-container {
+            min-height: 500px;
+            padding: 20px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        
+        .info-panel {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .info-panel h3 {
+            margin-top: 0;
+            color: #0c5460;
+        }
+        
+        .info-panel ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .info-panel li {
+            margin: 5px 0;
+        }
+        #tooltip {
+            position: absolute;
+            background: #fff;
+            border: 1px solid #ccc;
+            padding: 8px;
+            border-radius: 4px;
+            pointer-events: none;
+            display: none;
+            font-size: 13px;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tree Visualization Library - Interactive Demo</h1>
+        
+        <!-- Tooltip div for node hover info -->
+        <div id="tooltip"></div>
+        
+        <div class="info-panel">
+            <h3>About This Demo</h3>
+            <p>This demonstration shows how to use the Tree Visualization Library to display transmission trees from the <code>transmission_models</code> package. The library provides interactive visualizations with the following features:</p>
+            <ul>
+                <li><strong>Hierarchical Layout:</strong> Traditional tree layout based on parent-child relationships</li>
+                <li><strong>Infection Time Layout:</strong> Nodes positioned by their infection time for temporal analysis</li>
+                <li><strong>Interactive Highlighting:</strong> Hover over nodes to highlight related branches</li>
+                <li><strong>Sampling Status:</strong> Visual distinction between sampled (blue) and unsampled (orange) hosts</li>
+                <li><strong>Responsive Design:</strong> Automatically adapts to container size</li>
+            </ul>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="modelSelect">Select Model:</label>
+                <select id="modelSelect">
+                    <option value="examples/model_simple.json">Simple Model</option>
+                    <option value="examples/model_genetic.json">Genetic Model</option>
+                    <option value="examples/model_location.json">Location Model</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="toggleSwitch">Use Infection Time Layout:</label>
+                <input type="checkbox" id="toggleSwitch" class="toggle-switch">
+            </div>
+            
+            <div class="control-group">
+                <button onclick="loadTree()">Load Tree</button>
+                <button onclick="clearTree()">Clear Tree</button>
+            </div>
+        </div>
+        
+        <div class="visualization-container">
+            <div class="tree-info" id="treeInfo">
+                Select a model and click "Load Tree" to begin
+            </div>
+            <div class="tree-container" id="treeContainer">
+                <div class="loading">No tree loaded yet</div>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <h3>Data Format</h3>
+            <p>The library expects JSON data with the following structure:</p>
+            <pre><code>{
+    "log_likelihood": number,
+    "tree": {
+        "name": string,
+        "index": number,
+        "Infection time": number,
+        "Sampled": boolean,
+        "root": boolean,
+        "children": [...]
+    },
+    "parameters": {...}
+}</code></pre>
+        </div>
+    </div>
+
+    <script>
+        let currentData = null;
+        
+        function loadTree() {
+            const modelSelect = document.getElementById('modelSelect');
+            const selectedModel = modelSelect.value;
+            const treeContainer = document.getElementById('treeContainer');
+            const treeInfo = document.getElementById('treeInfo');
+            
+            // Clear previous content
+            treeContainer.innerHTML = '<div class="loading">Loading tree...</div>';
+            treeInfo.textContent = 'Loading...';
+            
+            fetch(selectedModel)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    currentData = data;
+                    
+                    // Update info panel
+                    const modelName = modelSelect.options[modelSelect.selectedIndex].text;
+                    treeInfo.innerHTML = `
+                        <strong>Model:</strong> ${modelName} | 
+                        <strong>Log Likelihood:</strong> ${data.log_likelihood.toFixed(3)} | 
+                        <strong>Parameters:</strong> ${Object.keys(data.parameters).length} parameter groups
+                    `;
+                    
+                    // Clear container and create tree
+                    treeContainer.innerHTML = '';
+                    createTreeMap(selectedModel, "#treeContainer", {
+                        tooltip: d3.select('#tooltip'),
+                        toggleSwitchId: 'toggleSwitch'
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading tree:', error);
+                    treeContainer.innerHTML = `
+                        <div class="error">
+                            <strong>Error loading tree:</strong> ${error.message}
+                            <br><br>
+                            <strong>Troubleshooting:</strong>
+                            <ul>
+                                <li>Make sure the JSON file exists and is accessible</li>
+                                <li>Check that the file contains valid JSON data</li>
+                                <li>Verify the data follows the expected format</li>
+                            </ul>
+                        </div>
+                    `;
+                    treeInfo.textContent = 'Error loading tree';
+                });
+        }
+        
+        function clearTree() {
+            const treeContainer = document.getElementById('treeContainer');
+            const treeInfo = document.getElementById('treeInfo');
+            
+            treeContainer.innerHTML = '<div class="loading">No tree loaded</div>';
+            treeInfo.textContent = 'Select a model and click "Load Tree" to begin';
+            currentData = null;
+        }
+        
+        // Add event listener for toggle switch
+        document.getElementById('toggleSwitch').addEventListener('change', function() {
+            if (currentData) {
+                // The library automatically handles the toggle switch
+                // Just reload the tree to apply the change
+                loadTree();
+            }
+        });
+        
+        // Load the first model by default
+        window.addEventListener('load', function() {
+            loadTree();
+        });
+
+        // Tooltip selection for use by the library
+        var tooltip = d3.select("#tooltip");
+    </script>
+</body>
+</html> 

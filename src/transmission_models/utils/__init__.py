@@ -41,42 +41,109 @@ import scipy.stats as st
 import numpy as np
 import json
 
-def tree_to_newick(g,lengths=True, root=None):
+def tree_to_newick(g, lengths=True, root=None):
+    """
+    Convert a transmission tree to Newick format for phylogenetic software.
+
+    Parameters
+    ----------
+    g : networkx.DiGraph
+        The transmission tree as a directed graph.
+    lengths : bool, optional
+        Whether to include branch lengths in the Newick string. Default is True.
+    root : node, optional
+        The root node of the tree. If None, the root will be inferred.
+
+    Returns
+    -------
+    str
+        The Newick string representation of the tree.
+    """
     if root is None:
         roots = list(filter(lambda p: p[1] == 0, g.in_degree()))
         assert 1 == len(roots)
         root = roots[0][0]
     subgs = []
-    # print("root ",root)
     for child in g[root]:
         if len(g[child]) > 0:
-            subgs.append(tree_to_newick(g, root=child,lengths=lengths))
+            subgs.append(tree_to_newick(g, root=child, lengths=lengths))
         else:
             subgs.append(child)
-#     print("------",len(subgs),subgs)
     L = []
-
     for h in subgs:
-        if isinstance(h,str):
+        if isinstance(h, str):
             L.append(h)
         else:
             if lengths:
-                L.append(str(h)+":{}".format(h.t_inf-root.t_inf))
+                L.append(str(h) + ":{}".format(h.t_inf - root.t_inf))
             else:
                 L.append(str(h))
     if lengths:
-        return "("+",".join(L)+"){}:{}".format(str(root),abs(root.t_inf))
+        return "(" + ",".join(L) + "){}:{}".format(str(root), abs(root.t_inf))
     else:
-        # print("------","("+",".join(L)+"){}".format(str(root)))
-        return "("+",".join(L)+"){}".format(str(root))
+        return "(" + ",".join(L) + "){}".format(str(root))
 
 
-def pdf_in_between(model,Dt,t):
-    return st.beta(a=model.k_inf,b=model.k_inf,scale=Dt).pdf(t)
-def sample_in_between(model,Dt):
-    return st.beta(a=model.k_inf,b=model.k_inf,scale=Dt).rvs()
+def pdf_in_between(model, Dt, t):
+    """
+    Compute the probability density function (PDF) value for the infection time between two events
+    using a beta distribution parameterized by the model's infection parameters.
+
+    Parameters
+    ----------
+    model : object
+        The model object containing infection parameters (expects attributes k_inf).
+    Dt : float
+        The scale parameter (duration between events).
+    t : float
+        The time at which to evaluate the PDF.
+
+    Returns
+    -------
+    float
+        The PDF value at time t.
+    """
+    return st.beta(a=model.k_inf, b=model.k_inf, scale=Dt).pdf(t)
+
+def sample_in_between(model, Dt):
+    """
+    Sample a random infection time between two events using a beta distribution
+    parameterized by the model's infection parameters.
+
+    Parameters
+    ----------
+    model : object
+        The model object containing infection parameters (expects attributes k_inf).
+    Dt : float
+        The scale parameter (duration between events).
+
+    Returns
+    -------
+    float
+        A random sample from the beta distribution.
+    """
+    return st.beta(a=model.k_inf, b=model.k_inf, scale=Dt).rvs()
+
 def random_combination(iterable, r=1):
-    "Random selection from itertools.combinations(iterable, r)"
+    """
+    Randomly select a combination of r elements from the given iterable.
+
+    Parameters
+    ----------
+    iterable : iterable
+        The input iterable to select elements from.
+    r : int, optional
+        The number of elements to select. Default is 1.
+
+    Returns
+    -------
+    tuple
+        A tuple containing r randomly selected elements from the iterable.
+
+    Notes
+    -----
+    This function is equivalent to a random selection from itertools.combinations(iterable, r).
+    """
     pool = tuple(iterable)
     n = len(pool)
     indices = sorted(sample(range(n), r))
@@ -295,11 +362,40 @@ def hierarchy_pos_times(G, root=None, width=1., vert_gap=0.2, vert_loc=0, xcente
 
 
 
-def plot_transmision_network(T,nodes_labels=False,pos = None, highlighted_nodes = None, ax=None,to_frame=False, title=None, filename=None, show=True):
+def plot_transmision_network(T, nodes_labels=False, pos=None, highlighted_nodes=None, ax=None, to_frame=False, title=None, filename=None, show=True):
+    """
+    Visualize a transmission network using matplotlib and networkx.
+
+    Parameters
+    ----------
+    T : networkx.DiGraph
+        The transmission network to plot.
+    nodes_labels : bool, optional
+        Whether to display node labels. Default is False.
+    pos : dict, optional
+        Node positions for layout. If None, uses graphviz_layout. Default is None.
+    highlighted_nodes : list, optional
+        List of nodes to highlight. Default is None.
+    ax : matplotlib.axes.Axes, optional
+        The axes to plot on. If None, uses current axes. Default is None.
+    to_frame : bool, optional
+        If True, saves the plot to a temporary image and returns it as an array. Default is False.
+    title : str, optional
+        Title for the plot. Default is None.
+    filename : str, optional
+        If provided, saves the plot to this file. Default is None.
+    show : bool, optional
+        Whether to display the plot. Default is True.
+
+    Returns
+    -------
+    image : ndarray or None
+        The image array if to_frame is True, otherwise None.
+    """
     if pos is None:
         pos = graphviz_layout(T, prog="dot")
     colors = ["red" if not h.sampled else "blue" for h in T]
-    ColorLegend = {'tested': 2,'not tested': 1}
+    ColorLegend = {'tested': 2, 'not tested': 1}
 
     if highlighted_nodes is not None:
         edgecolors = ["black" if h not in highlighted_nodes else "green" for h in T]
@@ -314,17 +410,16 @@ def plot_transmision_network(T,nodes_labels=False,pos = None, highlighted_nodes 
     if title is not None:
         ax.set_title(title)
 
-    nx.draw(T, pos,with_labels=nodes_labels,node_color=colors, edgecolors=edgecolors, linewidths=linewidths,ax=ax)
+    nx.draw(T, pos, with_labels=nodes_labels, node_color=colors, edgecolors=edgecolors, linewidths=linewidths, ax=ax)
     legend_elements = [
-        Line2D([0], [0], marker='o', color='w', label='tested',markerfacecolor='b', markersize=15),
-        Line2D([0], [0], marker='o', color='w', label='not tested',markerfacecolor='r', markersize=15),
+        Line2D([0], [0], marker='o', color='w', label='tested', markerfacecolor='b', markersize=15),
+        Line2D([0], [0], marker='o', color='w', label='not tested', markerfacecolor='r', markersize=15),
     ]
 
     if ax is None:
         plt.legend(handles=legend_elements, loc='upper right')
     else:
         ax.legend(handles=legend_elements, loc='upper right')
-
 
     if filename is not None:
         plt.savefig(filename)
@@ -339,7 +434,21 @@ def plot_transmision_network(T,nodes_labels=False,pos = None, highlighted_nodes 
 
 
 def tree_to_dict(model, h):
-    # print("host",h)
+    """
+    Convert a host and its descendants to a nested dictionary suitable for JSON export.
+
+    Parameters
+    ----------
+    model : object
+        The transmission model containing the tree structure.
+    h : host
+        The host node to convert.
+
+    Returns
+    -------
+    dict
+        A nested dictionary representing the host and its descendants.
+    """
     try:
         dict_tree = {"name": str(h),
                      "index": int(h),
@@ -347,9 +456,8 @@ def tree_to_dict(model, h):
                      "Sampled": h.sampled,
                      }
     except TypeError as e:
-        print("error",h, str(h))
+        print("error", h, str(h))
         raise e
-    # print(h.dict_attributes,h.dict_attributes!={})
     if h.dict_attributes != {}:
         dict_tree["Attributes"] = h.dict_attributes
     if h.sampled:
@@ -357,7 +465,7 @@ def tree_to_dict(model, h):
             dict_tree["Sampling time"] = h.t_sample
         except AttributeError:
             print("error", str(h), int(h), h.sampled)
-    if h==model.root_host:
+    if h == model.root_host:
         dict_tree["root"] = True
     else:
         dict_tree["root"] = False
@@ -413,18 +521,28 @@ def cast_types(value, types_map):
     return value # keep type of value
 
 def tree_to_json(model, filename):
-    dict_tree = tree_to_dict(model,model.root_host)
+    """
+    Save a transmission model and its tree to a JSON file.
+
+    Parameters
+    ----------
+    model : object
+        The transmission model to export.
+    filename : str
+        The path to the output JSON file.
+    """
+    dict_tree = tree_to_dict(model, model.root_host)
     dict_model = {"log_likelihood": model.log_likelihood,
-                 "tree": dict_tree}
+                  "tree": dict_tree}
 
     # Genetic prior
     if model.genetic_prior is not None:
         dict_model["genetic_prior"] = model.genetic_log_prior
 
-    dict_model["parameters"] = {"sampling_params":{},
-                                "offspring_params":{},
-                                "infection_params":{}
-                                }
+    dict_model["parameters"] = {"sampling_params": {},
+                                 "offspring_params": {},
+                                 "infection_params": {}
+                                 }
 
     dict_model["parameters"]["sampling_params"]["pi"] = model.pi
     dict_model["parameters"]["sampling_params"]["k_samp"] = model.k_samp
@@ -437,8 +555,6 @@ def tree_to_json(model, filename):
     dict_model["parameters"]["infection_params"]["k_inf"] = model.k_inf #
     dict_model["parameters"]["infection_params"]["theta_inf"] = model.theta_inf
 
-
-
     # Convert and write JSON object to file
     with open(filename, "w") as outfile:
         json.dump(cast_types(dict_model, [
@@ -446,8 +562,20 @@ def tree_to_json(model, filename):
             (np.float64, float),
         ]), outfile)
 
-
 def get_host_from_dict(dict_tree):
+    """
+    Create a host object from a dictionary representation (as used in JSON trees).
+
+    Parameters
+    ----------
+    dict_tree : dict
+        The dictionary representing a host (from JSON).
+
+    Returns
+    -------
+    host
+        The reconstructed host object.
+    """
     if dict_tree["Sampled"]:
         Host = host(dict_tree["name"], dict_tree["index"], t_sample=dict_tree["Sampling time"],
                          t_inf=dict_tree["Infection time"])
@@ -460,6 +588,23 @@ def get_host_from_dict(dict_tree):
 
 
 def read_tree_dict(dict_tree, h1=None, edge_list=[]):
+    """
+    Recursively read a tree dictionary and extract edges as (parent, child) tuples.
+
+    Parameters
+    ----------
+    dict_tree : dict
+        The dictionary representing the tree (from JSON).
+    h1 : host, optional
+        The parent host node. If None, will be created from dict_tree.
+    edge_list : list, optional
+        The list to append edges to. Default is an empty list.
+
+    Returns
+    -------
+    list
+        A list of (parent, child) edge tuples.
+    """
     if h1 is None: h1 = get_host_from_dict(dict_tree)
 
     if "children" in dict_tree:
@@ -472,36 +617,37 @@ def read_tree_dict(dict_tree, h1=None, edge_list=[]):
 
     return edge_list
 
-def json_to_tree(filename,sampling_params = None,offspring_params = None,infection_params = None):
+def json_to_tree(filename, sampling_params=None, offspring_params=None, infection_params=None):
     """
-    Load a tree from a JSON file.
+    Load a transmission model from a JSON file and reconstruct the model object.
 
     Parameters
     ----------
     filename : str
-        Path to the JSON file containing the tree data.
+        Path to the JSON file.
     sampling_params : dict, optional
-        Sampling parameters for the model.
+        Sampling parameters to override those in the file. Default is None.
     offspring_params : dict, optional
-        Offspring parameters for the model.
+        Offspring parameters to override those in the file. Default is None.
     infection_params : dict, optional
-        Infection parameters for the model.
+        Infection parameters to override those in the file. Default is None.
 
     Returns
     -------
     didelot_unsampled
-        The model with the loaded tree.
+        The reconstructed transmission model.
     """
-    with open(filename, 'r') as f:
-        dict_tree = json.load(f)
-    
-    if sampling_params is None:
-        sampling_params = dict_tree.get('sampling_params', {})
-    if offspring_params is None:
-        offspring_params = dict_tree.get('offspring_params', {})
-    if infection_params is None:
-        infection_params = dict_tree.get('infection_params', {})
-    
+    with open(filename) as json_data:
+        dict_tree = json.load(json_data)
+        json_data.close()
+
+    if sampling_params is not None:
+        sampling_params = dict_tree["parameters"]["sampling_params"]
+    if offspring_params is not None:
+        offspring_params = dict_tree["parameters"]["offspring_params"]
+    if infection_params is not None:
+        infection_params = dict_tree["parameters"]["infection_params"]
+
     model = didelot_unsampled(sampling_params, offspring_params, infection_params)
     
     if 'tree' in dict_tree:
