@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tree Visualization Test - Genetic Model</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://www.maths.usyd.edu.au/u/oscarf/tree_layout/tree_plot.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .test-header {
+            background-color: #28a745;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .test-info {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .test-controls {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+            margin-bottom: 20px;
+        }
+        
+        .control-group {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .control-group label {
+            font-weight: bold;
+            min-width: 200px;
+        }
+        
+        .toggle-switch {
+            transform: scale(1.2);
+        }
+        
+        .test-results {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .test-results h3 {
+            margin-top: 0;
+            color: #155724;
+        }
+        
+        .test-item {
+            margin: 5px 0;
+            padding: 5px;
+            background-color: #f8f9fa;
+            border-radius: 3px;
+        }
+        
+        .test-item.pass {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+        }
+        
+        .test-item.fail {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .visualization-container {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .tree-info {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            font-size: 14px;
+        }
+        
+        .tree-container {
+            min-height: 500px;
+            padding: 20px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        
+        .data-panel {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .data-panel h3 {
+            margin-top: 0;
+            color: #0c5460;
+        }
+        
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        
+        .genetic-info {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .genetic-info h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>Tree Visualization Test - Genetic Model</h1>
+            <p>Testing tree visualization with genetic distance data and prior information</p>
+        </div>
+        
+        <div class="test-info">
+            <h3>Test Overview</h3>
+            <p>This test validates the tree visualization library with a genetic model that includes:</p>
+            <ul>
+                <li>Transmission tree structure with genetic distance information</li>
+                <li>Genetic prior calculations</li>
+                <li>Sampled and unsampled hosts</li>
+                <li>Infection time data</li>
+                <li>Model parameters</li>
+            </ul>
+        </div>
+        
+        <div class="genetic-info">
+            <h3>Genetic Model Features</h3>
+            <p>This model incorporates genetic distance information between hosts to improve transmission tree inference. The genetic prior helps ensure that closely related genetic sequences are more likely to be connected in the transmission tree.</p>
+        </div>
+        
+        <div class="test-controls">
+            <h3>Test Controls</h3>
+            <div class="control-group">
+                <label for="toggleSwitch">Use Infection Time Layout:</label>
+                <input type="checkbox" id="toggleSwitch" class="toggle-switch">
+            </div>
+            <div class="control-group">
+                <button onclick="runTests()">Run All Tests</button>
+                <button onclick="clearTests()">Clear Results</button>
+            </div>
+        </div>
+        
+        <div class="test-results" id="testResults" style="display: none;">
+            <h3>Test Results</h3>
+            <div id="testOutput"></div>
+        </div>
+        
+        <div class="visualization-container">
+            <div class="tree-info" id="treeInfo">
+                Loading genetic model data...
+            </div>
+            <div class="tree-container" id="treeContainer">
+                <div class="loading">Loading tree visualization...</div>
+            </div>
+        </div>
+        
+        <div class="data-panel">
+            <h3>Genetic Model Data Summary</h3>
+            <div id="dataSummary">
+                <p>Loading data summary...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let testData = null;
+        let testResults = [];
+        
+        // Test functions
+        function testDataLoading() {
+            return new Promise((resolve) => {
+                if (testData) {
+                    resolve({
+                        name: "Data Loading",
+                        status: "pass",
+                        message: "Genetic model JSON data loaded successfully"
+                    });
+                } else {
+                    resolve({
+                        name: "Data Loading",
+                        status: "fail",
+                        message: "Failed to load genetic model JSON data"
+                    });
+                }
+            });
+        }
+        
+        function testDataStructure() {
+            return new Promise((resolve) => {
+                if (!testData) {
+                    resolve({
+                        name: "Data Structure",
+                        status: "fail",
+                        message: "No data available for testing"
+                    });
+                    return;
+                }
+                
+                const requiredFields = ['log_likelihood', 'tree', 'parameters'];
+                const missingFields = requiredFields.filter(field => !(field in testData));
+                
+                if (missingFields.length === 0) {
+                    resolve({
+                        name: "Data Structure",
+                        status: "pass",
+                        message: `All required fields present: ${requiredFields.join(', ')}`
+                    });
+                } else {
+                    resolve({
+                        name: "Data Structure",
+                        status: "fail",
+                        message: `Missing required fields: ${missingFields.join(', ')}`
+                    });
+                }
+            });
+        }
+        
+        function testGeneticPrior() {
+            return new Promise((resolve) => {
+                if (!testData) {
+                    resolve({
+                        name: "Genetic Prior",
+                        status: "fail",
+                        message: "No data available for testing"
+                    });
+                    return;
+                }
+                
+                if ('genetic_prior' in testData) {
+                    resolve({
+                        name: "Genetic Prior",
+                        status: "pass",
+                        message: `Genetic prior value: ${testData.genetic_prior.toFixed(3)}`
+                    });
+                } else {
+                    resolve({
+                        name: "Genetic Prior",
+                        status: "fail",
+                        message: "Genetic prior field not found in data"
+                    });
+                }
+            });
+        }
+        
+        function testTreeStructure() {
+            return new Promise((resolve) => {
+                if (!testData || !testData.tree) {
+                    resolve({
+                        name: "Tree Structure",
+                        status: "fail",
+                        message: "Tree data not available"
+                    });
+                    return;
+                }
+                
+                const tree = testData.tree;
+                const requiredTreeFields = ['name', 'index', 'Infection time', 'Sampled', 'root'];
+                const missingTreeFields = requiredTreeFields.filter(field => !(field in tree));
+                
+                if (missingTreeFields.length === 0) {
+                    resolve({
+                        name: "Tree Structure",
+                        status: "pass",
+                        message: `Tree has all required fields: ${requiredTreeFields.join(', ')}`
+                    });
+                } else {
+                    resolve({
+                        name: "Tree Structure",
+                        status: "fail",
+                        message: `Tree missing fields: ${missingTreeFields.join(', ')}`
+                    });
+                }
+            });
+        }
+        
+        function testNodeCount() {
+            return new Promise((resolve) => {
+                if (!testData || !testData.tree) {
+                    resolve({
+                        name: "Node Count",
+                        status: "fail",
+                        message: "Tree data not available"
+                    });
+                    return;
+                }
+                
+                function countNodes(node) {
+                    let count = 1;
+                    if (node.children && node.children.length > 0) {
+                        count += node.children.reduce((sum, child) => sum + countNodes(child), 0);
+                    }
+                    return count;
+                }
+                
+                const nodeCount = countNodes(testData.tree);
+                
+                if (nodeCount > 0) {
+                    resolve({
+                        name: "Node Count",
+                        status: "pass",
+                        message: `Tree contains ${nodeCount} nodes`
+                    });
+                } else {
+                    resolve({
+                        name: "Node Count",
+                        status: "fail",
+                        message: "Tree contains no nodes"
+                    });
+                }
+            });
+        }
+        
+        function testSamplingStatus() {
+            return new Promise((resolve) => {
+                if (!testData || !testData.tree) {
+                    resolve({
+                        name: "Sampling Status",
+                        status: "fail",
+                        message: "Tree data not available"
+                    });
+                    return;
+                }
+                
+                function countSamplingStatus(node) {
+                    let sampled = 0;
+                    let unsampled = 0;
+                    
+                    if (node.Sampled) {
+                        sampled++;
+                    } else {
+                        unsampled++;
+                    }
+                    
+                    if (node.children && node.children.length > 0) {
+                        node.children.forEach(child => {
+                            const childCounts = countSamplingStatus(child);
+                            sampled += childCounts.sampled;
+                            unsampled += childCounts.unsampled;
+                        });
+                    }
+                    
+                    return { sampled, unsampled };
+                }
+                
+                const counts = countSamplingStatus(testData.tree);
+                
+                if (counts.sampled > 0 || counts.unsampled > 0) {
+                    resolve({
+                        name: "Sampling Status",
+                        status: "pass",
+                        message: `Found ${counts.sampled} sampled and ${counts.unsampled} unsampled hosts`
+                    });
+                } else {
+                    resolve({
+                        name: "Sampling Status",
+                        status: "fail",
+                        message: "No sampling status data found"
+                    });
+                }
+            });
+        }
+        
+        function testVisualizationRendering() {
+            return new Promise((resolve) => {
+                const container = document.getElementById('treeContainer');
+                const svg = container.querySelector('svg');
+                
+                if (svg) {
+                    const nodes = svg.querySelectorAll('.node circle');
+                    const links = svg.querySelectorAll('.link');
+                    
+                    resolve({
+                        name: "Visualization Rendering",
+                        status: "pass",
+                        message: `Rendered ${nodes.length} nodes and ${links.length} links`
+                    });
+                } else {
+                    resolve({
+                        name: "Visualization Rendering",
+                        status: "fail",
+                        message: "SVG visualization not found"
+                    });
+                }
+            });
+        }
+        
+        function testToggleFunctionality() {
+            return new Promise((resolve) => {
+                const toggle = document.getElementById('toggleSwitch');
+                
+                if (toggle) {
+                    resolve({
+                        name: "Toggle Functionality",
+                        status: "pass",
+                        message: "Toggle switch is present and functional"
+                    });
+                } else {
+                    resolve({
+                        name: "Toggle Functionality",
+                        status: "fail",
+                        message: "Toggle switch not found"
+                    });
+                }
+            });
+        }
+        
+        function testGeneticModelSpecific() {
+            return new Promise((resolve) => {
+                if (!testData) {
+                    resolve({
+                        name: "Genetic Model Specific",
+                        status: "fail",
+                        message: "No data available for testing"
+                    });
+                    return;
+                }
+                
+                const hasGeneticPrior = 'genetic_prior' in testData;
+                const hasParameters = 'parameters' in testData;
+                const hasTree = 'tree' in testData;
+                
+                if (hasGeneticPrior && hasParameters && hasTree) {
+                    resolve({
+                        name: "Genetic Model Specific",
+                        status: "pass",
+                        message: "Genetic model contains all expected components"
+                    });
+                } else {
+                    const missing = [];
+                    if (!hasGeneticPrior) missing.push('genetic_prior');
+                    if (!hasParameters) missing.push('parameters');
+                    if (!hasTree) missing.push('tree');
+                    
+                    resolve({
+                        name: "Genetic Model Specific",
+                        status: "fail",
+                        message: `Missing genetic model components: ${missing.join(', ')}`
+                    });
+                }
+            });
+        }
+        
+        function ensureChildrenArray(node) {
+            if (!('children' in node)) {
+                node.children = [];
+            }
+            if (Array.isArray(node.children)) {
+                node.children.forEach(ensureChildrenArray);
+            }
+        }
+        
+        async function runTests() {
+            const testOutput = document.getElementById('testOutput');
+            const testResultsDiv = document.getElementById('testResults');
+            
+            testOutput.innerHTML = '<div class="loading">Running genetic model tests...</div>';
+            testResultsDiv.style.display = 'block';
+            
+            const tests = [
+                testDataLoading,
+                testDataStructure,
+                testGeneticPrior,
+                testTreeStructure,
+                testNodeCount,
+                testSamplingStatus,
+                testVisualizationRendering,
+                testToggleFunctionality,
+                testGeneticModelSpecific
+            ];
+            
+            const results = [];
+            
+            for (const test of tests) {
+                const result = await test();
+                results.push(result);
+            }
+            
+            // Display results
+            testOutput.innerHTML = results.map(result => 
+                `<div class="test-item ${result.status}">
+                    <strong>${result.name}:</strong> ${result.message}
+                </div>`
+            ).join('');
+            
+            // Count passes and fails
+            const passes = results.filter(r => r.status === 'pass').length;
+            const fails = results.filter(r => r.status === 'fail').length;
+            
+            const summary = document.createElement('div');
+            summary.innerHTML = `
+                <hr>
+                <strong>Summary:</strong> ${passes} passed, ${fails} failed
+            `;
+            testOutput.appendChild(summary);
+        }
+        
+        function clearTests() {
+            document.getElementById('testResults').style.display = 'none';
+            document.getElementById('testOutput').innerHTML = '';
+        }
+        
+        function updateDataSummary() {
+            if (!testData) return;
+            
+            const summary = document.getElementById('dataSummary');
+            
+            // Count nodes
+            function countNodes(node) {
+                let count = 1;
+                if (node.children && node.children.length > 0) {
+                    count += node.children.reduce((sum, child) => sum + countNodes(child), 0);
+                }
+                return count;
+            }
+            
+            // Count sampling status
+            function countSamplingStatus(node) {
+                let sampled = 0;
+                let unsampled = 0;
+                
+                if (node.Sampled) {
+                    sampled++;
+                } else {
+                    unsampled++;
+                }
+                
+                if (node.children && node.children.length > 0) {
+                    node.children.forEach(child => {
+                        const childCounts = countSamplingStatus(child);
+                        sampled += childCounts.sampled;
+                        unsampled += childCounts.unsampled;
+                    });
+                }
+                
+                return { sampled, unsampled };
+            }
+            
+            const nodeCount = countNodes(testData.tree);
+            const samplingCounts = countSamplingStatus(testData.tree);
+            
+            summary.innerHTML = `
+                <ul>
+                    <li><strong>Log Likelihood:</strong> ${testData.log_likelihood.toFixed(3)}</li>
+                    <li><strong>Genetic Prior:</strong> ${testData.genetic_prior ? testData.genetic_prior.toFixed(3) : 'N/A'}</li>
+                    <li><strong>Total Nodes:</strong> ${nodeCount}</li>
+                    <li><strong>Sampled Hosts:</strong> ${samplingCounts.sampled}</li>
+                    <li><strong>Unsampled Hosts:</strong> ${samplingCounts.unsampled}</li>
+                    <li><strong>Parameter Groups:</strong> ${Object.keys(testData.parameters).length}</li>
+                </ul>
+                
+                <h4>Parameters:</h4>
+                <pre>${JSON.stringify(testData.parameters, null, 2)}</pre>
+            `;
+        }
+        
+        // Load the genetic model data
+        fetch('examples/model_genetic.json')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                testData = data;
+                ensureChildrenArray(data.tree);
+                // Update tree info
+                const treeInfo = document.getElementById('treeInfo');
+                treeInfo.innerHTML = `
+                    <strong>Model:</strong> Genetic Model | 
+                    <strong>Log Likelihood:</strong> ${data.log_likelihood.toFixed(3)} | 
+                    <strong>Genetic Prior:</strong> ${data.genetic_prior ? data.genetic_prior.toFixed(3) : 'N/A'} |
+                    <strong>Status:</strong> Loaded successfully
+                `;
+                // Create tree visualization
+                const treeContainer = document.getElementById('treeContainer');
+                treeContainer.innerHTML = '';
+                createTreeMap("../examples/model_genetic.json", "#treeContainer", {
+                    tooltip: d3.select('#tooltip'),
+                    toggleSwitchId: 'toggleSwitch'
+                });
+                // Update data summary
+                updateDataSummary();
+                // Run tests automatically
+                setTimeout(runTests, 1000);
+            })
+            .catch(error => {
+                console.error('Error loading genetic model:', error);
+                const treeContainer = document.getElementById('treeContainer');
+                const treeInfo = document.getElementById('treeInfo');
+                
+                let errorMessage = error.message;
+                let troubleshootingSteps = [
+                    'Make sure the JSON file exists at examples/model_genetic.json',
+                    'Check that the file contains valid JSON data',
+                    'Verify the data follows the expected format'
+                ];
+                
+                // Check for CORS error
+                if (error.message.includes('CORS') || error.message.includes('cross-origin')) {
+                    errorMessage = 'CORS Error: Cannot load local files directly in browser';
+                    troubleshootingSteps = [
+                        '<strong>Solution 1:</strong> Use a local web server: <code>python3 -m http.server 8000</code> then open <code>http://localhost:8000/tests/test_genetic_model.html</code>',
+                        '<strong>Solution 2:</strong> Use Node.js: <code>npx http-server -p 8000</code>',
+                        '<strong>Solution 3:</strong> Use PHP: <code>php -S localhost:8000</code>',
+                        'Make sure you access the file via <code>http://localhost:8000</code> not <code>file://</code>'
+                    ];
+                }
+                
+                treeContainer.innerHTML = `
+                    <div class="error">
+                        <strong>Error loading genetic model:</strong> ${errorMessage}
+                        <br><br>
+                        <strong>Troubleshooting:</strong>
+                        <ul>
+                            ${troubleshootingSteps.map(step => `<li>${step}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+                treeInfo.textContent = 'Error loading genetic model';
+            });
+    </script>
+</body>
+</html> 
