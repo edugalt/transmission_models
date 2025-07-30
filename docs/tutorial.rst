@@ -179,23 +179,23 @@ Example output from the MCMC sampling:
 
 .. code-block:: text
 
-   Iteration 3000: log_posterior=550.979, unsampled_hosts=11, trees=6
-   Iteration 4000: log_posterior=544.889, unsampled_hosts=14, trees=7
-   Iteration 5000: log_posterior=543.245, unsampled_hosts=17, trees=10
-   Iteration 6000: log_posterior=539.106, unsampled_hosts=15, trees=14
-   Iteration 7000: log_posterior=540.900, unsampled_hosts=16, trees=15
-   Iteration 8000: log_posterior=513.724, unsampled_hosts=21, trees=14
-   Iteration 9000: log_posterior=566.424, unsampled_hosts=10, trees=9
-   Iteration 10000: log_posterior=577.204, unsampled_hosts=9, trees=11
-   Iteration 11000: log_posterior=520.196, unsampled_hosts=19, trees=8
-   Iteration 12000: log_posterior=557.759, unsampled_hosts=11, trees=9
-   Iteration 13000: log_posterior=539.327, unsampled_hosts=15, trees=6
-   Iteration 14000: log_posterior=561.033, unsampled_hosts=11, trees=7
-   Iteration 15000: log_posterior=560.426, unsampled_hosts=12, trees=9
-   Iteration 16000: log_posterior=555.730, unsampled_hosts=14, trees=14
-   Iteration 17000: log_posterior=578.869, unsampled_hosts=9, trees=11
-   Iteration 18000: log_posterior=558.997, unsampled_hosts=12, trees=11
-   Iteration 19000: log_posterior=567.254, unsampled_hosts=10, trees=9
+   Iteration 3000: log_posterior=628.478, unsampled_hosts=13, trees=3
+   Iteration 4000: log_posterior=622.435, unsampled_hosts=12, trees=5
+   Iteration 5000: log_posterior=620.815, unsampled_hosts=14, trees=6
+   Iteration 6000: log_posterior=614.478, unsampled_hosts=16, trees=5
+   Iteration 7000: log_posterior=641.400, unsampled_hosts=10, trees=3
+   Iteration 8000: log_posterior=626.961, unsampled_hosts=14, trees=1
+   Iteration 9000: log_posterior=595.251, unsampled_hosts=18, trees=1
+   Iteration 10000: log_posterior=668.752, unsampled_hosts=5, trees=1
+   Iteration 11000: log_posterior=667.538, unsampled_hosts=6, trees=2
+   Iteration 12000: log_posterior=655.567, unsampled_hosts=11, trees=7
+   Iteration 13000: log_posterior=623.757, unsampled_hosts=14, trees=6
+   Iteration 14000: log_posterior=628.688, unsampled_hosts=13, trees=3
+   Iteration 15000: log_posterior=655.833, unsampled_hosts=10, trees=2
+   Iteration 16000: log_posterior=618.300, unsampled_hosts=17, trees=3
+   Iteration 17000: log_posterior=623.577, unsampled_hosts=14, trees=5
+   Iteration 18000: log_posterior=627.868, unsampled_hosts=16, trees=6
+   Iteration 19000: log_posterior=610.084, unsampled_hosts=19, trees=8
 
 Visualizing Results
 ------------------
@@ -321,35 +321,35 @@ Example output from the MCMC sampling with location priors:
 
 .. code-block:: text
 
-   Iteration 2100: log_posterior=485.014, unsampled_hosts=14, trees=11
-   Iteration 2200: log_posterior=469.394, unsampled_hosts=17, trees=11
-   Iteration 2300: log_posterior=440.896, unsampled_hosts=23, trees=11
-   Iteration 2400: log_posterior=423.440, unsampled_hosts=25, trees=10
-   Iteration 2500: log_posterior=460.957, unsampled_hosts=20, trees=9
-   Iteration 2600: log_posterior=447.044, unsampled_hosts=19, trees=9
-   Iteration 2700: log_posterior=441.449, unsampled_hosts=20, trees=11
-   Iteration 2800: log_posterior=482.523, unsampled_hosts=13, trees=10
-   Iteration 2900: log_posterior=475.835, unsampled_hosts=15, trees=9
-   Iteration 3000: log_posterior=484.589, unsampled_hosts=15, trees=9
-   Iteration 3100: log_posterior=450.960, unsampled_hosts=22, trees=9
-   Iteration 3200: log_posterior=454.941, unsampled_hosts=21, trees=9
-   Iteration 3300: log_posterior=492.992, unsampled_hosts=12, trees=12
-   Iteration 3400: log_posterior=477.508, unsampled_hosts=15, trees=11
-   Iteration 3500: log_posterior=441.995, unsampled_hosts=22, trees=9
-   Iteration 3600: log_posterior=461.221, unsampled_hosts=19, trees=9
-   Iteration 3700: log_posterior=448.741, unsampled_hosts=22, trees=10
-   Iteration 3800: log_posterior=463.411, unsampled_hosts=18, trees=11
-   Iteration 3900: log_posterior=466.452, unsampled_hosts=17, trees=11
-   Iteration 4000: log_posterior=463.154, unsampled_hosts=16, trees=11
-   Iteration 4100: log_posterior=456.441, unsampled_hosts=18, trees=12
-   Iteration 4200: log_posterior=462.173, unsampled_hosts=16, trees=10
-   Iteration 4300: log_posterior=473.310, unsampled_hosts=13, trees=10
-   Iteration 4400: log_posterior=453.919, unsampled_hosts=16, trees=10
-   Iteration 4500: log_posterior=441.920, unsampled_hosts=19, trees=10
-   Iteration 4600: log_posterior=455.304, unsampled_hosts=17, trees=9
-   Iteration 4700: log_posterior=446.852, unsampled_hosts=20, trees=9
-   Iteration 4800: log_posterior=429.772, unsampled_hosts=20, trees=9
-   Iteration 4900: log_posterior=460.426, unsampled_hosts=16, trees=9
+   Iteration 2100: log_posterior=550.090, unsampled_hosts=16, trees=6
+   Iteration 2200: log_posterior=552.332, unsampled_hosts=16, trees=6
+   Iteration 2300: log_posterior=550.420, unsampled_hosts=15, trees=6
+   Iteration 2400: log_posterior=551.907, unsampled_hosts=14, trees=7
+   Iteration 2500: log_posterior=564.712, unsampled_hosts=13, trees=8
+   Iteration 2600: log_posterior=572.233, unsampled_hosts=12, trees=6
+   Iteration 2700: log_posterior=573.286, unsampled_hosts=12, trees=7
+   Iteration 2800: log_posterior=577.580, unsampled_hosts=12, trees=7
+   Iteration 2900: log_posterior=550.249, unsampled_hosts=17, trees=2
+   Iteration 3000: log_posterior=566.957, unsampled_hosts=14, trees=2
+   Iteration 3100: log_posterior=587.359, unsampled_hosts=8, trees=2
+   Iteration 3200: log_posterior=580.098, unsampled_hosts=10, trees=2
+   Iteration 3300: log_posterior=581.744, unsampled_hosts=12, trees=3
+   Iteration 3400: log_posterior=566.052, unsampled_hosts=12, trees=3
+   Iteration 3500: log_posterior=566.167, unsampled_hosts=11, trees=4
+   Iteration 3600: log_posterior=532.199, unsampled_hosts=18, trees=2
+   Iteration 3700: log_posterior=558.425, unsampled_hosts=12, trees=3
+   Iteration 3800: log_posterior=552.115, unsampled_hosts=13, trees=3
+   Iteration 3900: log_posterior=584.519, unsampled_hosts=7, trees=3
+   Iteration 4000: log_posterior=557.722, unsampled_hosts=11, trees=4
+   Iteration 4100: log_posterior=556.659, unsampled_hosts=13, trees=3
+   Iteration 4200: log_posterior=558.776, unsampled_hosts=11, trees=2
+   Iteration 4300: log_posterior=561.215, unsampled_hosts=11, trees=2
+   Iteration 4400: log_posterior=572.141, unsampled_hosts=8, trees=2
+   Iteration 4500: log_posterior=582.607, unsampled_hosts=7, trees=2
+   Iteration 4600: log_posterior=579.311, unsampled_hosts=9, trees=2
+   Iteration 4700: log_posterior=576.168, unsampled_hosts=11, trees=2
+   Iteration 4800: log_posterior=585.201, unsampled_hosts=9, trees=2
+   Iteration 4900: log_posterior=573.914, unsampled_hosts=11, trees=2
 
 Visualizing Results with Location Priors
 ---------------------------------------
@@ -438,37 +438,32 @@ Example output from processing genetic data:
 
 .. code-block:: text
 
-   1 hCoV-19/Australia/NSW1634/2021 hCoV-19/Australia/NSW1661/2021
-   2 hCoV-19/Australia/NSW1634/2021 hCoV-19/Australia/NSW1663/2021
-   3 hCoV-19/Australia/NSW1680/2021 hCoV-19/Australia/NSW1773/2021
-   4 hCoV-19/Australia/NSW1667/2021 hCoV-19/Australia/NSW1705/2021
-   5 hCoV-19/Australia/NSW1703/2021 hCoV-19/Australia/NSW1782/2021
-   6 hCoV-19/Australia/NSW1658/2021 hCoV-19/Australia/NSW1743/2021
-   7 hCoV-19/Australia/NSW1678/2021 hCoV-19/Australia/NSW1708/2021
-   8 hCoV-19/Australia/NSW1660/2021 hCoV-19/Australia/NSW1679/2021
-   9 hCoV-19/Australia/NSW1677/2021 hCoV-19/Australia/NSW1772/2021
-   10 hCoV-19/Australia/NSW1666/2021 hCoV-19/Australia/NSW1667/2021
-   11 hCoV-19/Australia/NSW1657/2021 hCoV-19/Australia/NSW1694/2021
-   12 hCoV-19/Australia/NSW1657/2021 hCoV-19/Australia/NSW1739/2021
-   13 hCoV-19/Australia/NSW1657/2021 hCoV-19/Australia/NSW1761/2021
-   14 hCoV-19/Australia/NSW1665/2021 hCoV-19/Australia/NSW1738/2021
-   15 hCoV-19/Australia/NSW1661/2021 hCoV-19/Australia/NSW1657/2021
-   16 hCoV-19/Australia/NSW1656/2021 hCoV-19/Australia/NSW1668/2021
-   17 hCoV-19/Australia/NSW1652/2021 hCoV-19/Australia/NSW1713/2021
-   18 hCoV-19/Australia/NSW1652/2021 hCoV-19/Australia/NSW1665/2021
-   19 hCoV-19/Australia/NSW1654/2021 hCoV-19/Australia/NSW1748/2021
-   20 hCoV-19/Australia/NSW1649/2021 hCoV-19/Australia/NSW1678/2021
-   21 hCoV-19/Australia/NSW1655/2021 hCoV-19/Australia/NSW1732/2021
-   22 hCoV-19/Australia/NSW1732/2021 hCoV-19/Australia/NSW1768/2021
-   23 hCoV-19/Australia/NSW1663/2021 hCoV-19/Australia/NSW1727/2021
-   24 hCoV-19/Australia/NSW1729/2021 hCoV-19/Australia/NSW1664/2021
-   25 hCoV-19/Australia/NSW1729/2021 hCoV-19/Australia/NSW1672/2021
-   26 hCoV-19/Australia/NSW1653/2021 hCoV-19/Australia/NSW1680/2021
-   27 hCoV-19/Australia/NSW1653/2021 hCoV-19/Australia/NSW1762/2021
-   28 hCoV-19/Australia/NSW1653/2021 hCoV-19/Australia/NSW1662/2021
-   29 hCoV-19/Australia/NSW1672/2021 hCoV-19/Australia/NSW1785/2021
-   30 hCoV-19/Australia/NSW1739/2021 hCoV-19/Australia/NSW1728/2021
-   31 hCoV-19/Australia/NSW1760/2021 hCoV-19/Australia/NSW1781/2021
+    1 hCoV-19/Australia/NSW1679/2021 hCoV-19/Australia/NSW1680/2021
+    2 hCoV-19/Australia/NSW1679/2021 hCoV-19/Australia/NSW1760/2021
+    3 hCoV-19/Australia/NSW1732/2021 hCoV-19/Australia/NSW1761/2021
+    4 hCoV-19/Australia/NSW1662/2021 hCoV-19/Australia/NSW1738/2021
+    5 hCoV-19/Australia/NSW1649/2021 hCoV-19/Australia/NSW1668/2021
+    6 hCoV-19/Australia/NSW1649/2021 hCoV-19/Australia/NSW1665/2021
+    7 hCoV-19/Australia/NSW1667/2021 hCoV-19/Australia/NSW1713/2021
+    8 hCoV-19/Australia/NSW1655/2021 hCoV-19/Australia/NSW1705/2021
+    9 hCoV-19/Australia/NSW1655/2021 hCoV-19/Australia/NSW1672/2021
+    10 hCoV-19/Australia/NSW1655/2021 hCoV-19/Australia/NSW1662/2021
+    11 hCoV-19/Australia/NSW1765/2021 hCoV-19/Australia/NSW1781/2021
+    12 hCoV-19/Australia/NSW1664/2021 hCoV-19/Australia/NSW1653/2021
+    13 hCoV-19/Australia/NSW1664/2021 hCoV-19/Australia/NSW1654/2021
+    14 hCoV-19/Australia/NSW1664/2021 hCoV-19/Australia/NSW1655/2021
+    15 hCoV-19/Australia/NSW1664/2021 hCoV-19/Australia/NSW1677/2021
+    16 hCoV-19/Australia/NSW1664/2021 hCoV-19/Australia/NSW1649/2021
+    17 hCoV-19/Australia/NSW1664/2021 hCoV-19/Australia/NSW1658/2021
+    18 hCoV-19/Australia/NSW1661/2021 hCoV-19/Australia/NSW1765/2021
+    19 hCoV-19/Australia/NSW1668/2021 hCoV-19/Australia/NSW1782/2021
+    20 hCoV-19/Australia/NSW1666/2021 hCoV-19/Australia/NSW1660/2021
+    21 hCoV-19/Australia/NSW1672/2021 hCoV-19/Australia/NSW1768/2021
+    22 hCoV-19/Australia/NSW1762/2021 hCoV-19/Australia/NSW1743/2021
+    23 hCoV-19/Australia/NSW1694/2021 hCoV-19/Australia/NSW1748/2021
+    24 hCoV-19/Australia/NSW1694/2021 hCoV-19/Australia/NSW1772/2021
+    25 hCoV-19/Australia/NSW1773/2021 hCoV-19/Australia/NSW1793/2021
+    26 hCoV-19/Australia/NSW1785/2021 hCoV-19/Australia/NSW1727/2021
 
 MCMC with Genetic Information
 ----------------------------
@@ -504,35 +499,35 @@ Example output from the MCMC sampling with genetic priors:
 
 .. code-block:: text
 
-   Iteration 210: log_posterior=354.974, unsampled_hosts=25, trees=17
-   Iteration 220: log_posterior=351.457, unsampled_hosts=25, trees=17
-   Iteration 230: log_posterior=352.161, unsampled_hosts=25, trees=17
-   Iteration 240: log_posterior=350.852, unsampled_hosts=25, trees=17
-   Iteration 250: log_posterior=351.790, unsampled_hosts=25, trees=17
-   Iteration 260: log_posterior=356.747, unsampled_hosts=24, trees=17
-   Iteration 270: log_posterior=365.159, unsampled_hosts=23, trees=17
-   Iteration 280: log_posterior=370.021, unsampled_hosts=23, trees=16
-   Iteration 290: log_posterior=372.348, unsampled_hosts=23, trees=16
-   Iteration 300: log_posterior=372.597, unsampled_hosts=23, trees=16
-   Iteration 310: log_posterior=370.240, unsampled_hosts=24, trees=16
-   Iteration 320: log_posterior=365.166, unsampled_hosts=25, trees=16
-   Iteration 330: log_posterior=369.148, unsampled_hosts=24, trees=16
-   Iteration 340: log_posterior=364.502, unsampled_hosts=25, trees=16
-   Iteration 350: log_posterior=361.894, unsampled_hosts=26, trees=16
-   Iteration 360: log_posterior=363.142, unsampled_hosts=25, trees=16
-   Iteration 370: log_posterior=357.124, unsampled_hosts=26, trees=16
-   Iteration 380: log_posterior=357.418, unsampled_hosts=26, trees=16
-   Iteration 390: log_posterior=357.668, unsampled_hosts=26, trees=16
-   Iteration 400: log_posterior=350.837, unsampled_hosts=28, trees=16
-   Iteration 410: log_posterior=345.802, unsampled_hosts=29, trees=16
-   Iteration 420: log_posterior=349.899, unsampled_hosts=28, trees=17
-   Iteration 430: log_posterior=347.784, unsampled_hosts=27, trees=17
-   Iteration 440: log_posterior=347.796, unsampled_hosts=27, trees=17
-   Iteration 450: log_posterior=351.996, unsampled_hosts=26, trees=17
-   Iteration 460: log_posterior=348.287, unsampled_hosts=27, trees=17
-   Iteration 470: log_posterior=351.145, unsampled_hosts=26, trees=16
-   Iteration 480: log_posterior=357.867, unsampled_hosts=25, trees=16
-   Iteration 490: log_posterior=361.599, unsampled_hosts=24, trees=16
+   Iteration 210: log_posterior=477.323, unsampled_hosts=17, trees=4
+   Iteration 220: log_posterior=479.299, unsampled_hosts=17, trees=4
+   Iteration 230: log_posterior=478.741, unsampled_hosts=17, trees=4
+   Iteration 240: log_posterior=480.454, unsampled_hosts=17, trees=4
+   Iteration 250: log_posterior=476.393, unsampled_hosts=18, trees=4
+   Iteration 260: log_posterior=481.108, unsampled_hosts=17, trees=4
+   Iteration 270: log_posterior=485.188, unsampled_hosts=16, trees=4
+   Iteration 280: log_posterior=484.058, unsampled_hosts=16, trees=4
+   Iteration 290: log_posterior=484.391, unsampled_hosts=16, trees=4
+   Iteration 300: log_posterior=482.524, unsampled_hosts=16, trees=4
+   Iteration 310: log_posterior=485.898, unsampled_hosts=16, trees=4
+   Iteration 320: log_posterior=485.950, unsampled_hosts=16, trees=4
+   Iteration 330: log_posterior=478.521, unsampled_hosts=18, trees=4
+   Iteration 340: log_posterior=481.231, unsampled_hosts=18, trees=4
+   Iteration 350: log_posterior=486.563, unsampled_hosts=17, trees=4
+   Iteration 360: log_posterior=490.663, unsampled_hosts=16, trees=4
+   Iteration 370: log_posterior=490.254, unsampled_hosts=16, trees=4
+   Iteration 380: log_posterior=492.284, unsampled_hosts=16, trees=4
+   Iteration 390: log_posterior=493.078, unsampled_hosts=16, trees=4
+   Iteration 400: log_posterior=486.902, unsampled_hosts=17, trees=4
+   Iteration 410: log_posterior=479.086, unsampled_hosts=19, trees=4
+   Iteration 420: log_posterior=482.639, unsampled_hosts=18, trees=4
+   Iteration 430: log_posterior=482.158, unsampled_hosts=18, trees=4
+   Iteration 440: log_posterior=479.389, unsampled_hosts=19, trees=4
+   Iteration 450: log_posterior=474.540, unsampled_hosts=20, trees=4
+   Iteration 460: log_posterior=474.672, unsampled_hosts=20, trees=4
+   Iteration 470: log_posterior=468.767, unsampled_hosts=21, trees=4
+   Iteration 480: log_posterior=466.031, unsampled_hosts=22, trees=4
+   Iteration 490: log_posterior=465.184, unsampled_hosts=22, trees=4
 
 Visualizing Results with Genetic Priors
 -------------------------------------
