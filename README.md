@@ -61,7 +61,7 @@ Contains additional functions used in the library.
 
 # Usage
 
-See the [Example.ipynb](https://github.com/edugalt/transmission_models/blob/main/Example.ipynb) notebook for detailed usage examples and the [documentation](https://oscarcapote.github.io/transmission_models/) for complete API reference.
+See the [Example.ipynb](https://github.com/oscarcapote/transmission_models/blob/main/examples/Example.ipynb) notebook for detailed usage examples and the [documentation](https://www.maths.usyd.edu.au/u/oscarf/transmission_models_documentation/) for complete API reference.
 
 # Tree Visualization JS library:
 
@@ -85,7 +85,7 @@ This webpage have been developed using tree_layout.js
 
 ## Documentation of tree_layout.js
 
-For complete documentation on using the tree visualization features, see the [Tree Visualization Guide](https://oscarcapote.github.io/transmission_models/tree_visualization.html) in the documentation.
+For complete documentation on using the tree visualization features, see the [Tree Visualization Guide](./docs/tree_visualization.md) in the documentation.
 
 ## Online Tool
 
